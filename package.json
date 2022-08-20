@@ -1,0 +1,19 @@
+{
+  "name": "riemann-surfaces",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4",
+    "vite": "^3.0.7"
+  },
+  "dependencies": {
+    "complex.js": "^2.1.1",
+    "phil-lib": "^1.0.2"
+  }
+}
