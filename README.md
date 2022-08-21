@@ -15,6 +15,18 @@ For a given 𝒛 there can be multiple 𝒘's.
 For a given 𝒘 there can be only one 𝒛.
 E.g. 𝒛=𝒘².
 
+## Try It Yourself!
+
+https://tradeideasphilip.github.io/riemann-surfaces/
+
+This is an interactive program.
+Use the mouse to move the 𝒛 value.
+The 𝒘 values will update automatically.
+Click save the point and continue your path.
+Hold the mouse button down to record your entire path, without any preview.
+
+Currently this is hardcoded to 𝒛=𝒘². As known as 𝒘=±√𝒛.
+
 ## Alternate View
 
 This image from Wikipedia is a common way to show a Riemann surface, like the one created by 𝒛=𝒘².
