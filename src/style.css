@@ -12,6 +12,7 @@ svg {
   border-style: solid;
   border-width: 0.25em;
   border-color: saddlebrown;
+  max-height: 90vh;
 }
 line {
   stroke-width: 0.05;
