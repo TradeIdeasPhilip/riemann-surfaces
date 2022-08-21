@@ -72,6 +72,20 @@ const bottomGroup = getById("bottom", SVGGElement);
 const mainGroup = getById("main", SVGGElement);
 const topGroup = getById("top", SVGGElement);
 
+const positionInfoDiv = getById("positionInfo", HTMLDivElement);
+
+const formatter1 = new Intl.NumberFormat(undefined, {
+  maximumSignificantDigits: 4,
+});
+const formatter2 = new Intl.NumberFormat(undefined, {
+  maximumSignificantDigits: 4,
+  signDisplay: "always",
+});
+
+function formatComplex(complex: Complex) {
+  return `${formatter1.format(complex.re)}${formatter2.format(complex.im)}𝓲`;
+}
+
 /**
  * This describes the path of the z or one of the w's.
  *
@@ -85,7 +99,7 @@ class PathInfo {
   /**
    * The line segment currently connected to the end.
    */
-  readonly #lastSegment: SVGLineElement;
+  #lastSegment?: SVGLineElement;
   /**
    * This is the end of the path that can move.
    */
@@ -99,13 +113,14 @@ class PathInfo {
   set currentValue(newValue: Complex) {
     const x = newValue.re;
     const y = -newValue.im;
-    const line = this.#lastSegment;
+    const line = this.#lastSegment!;
     line.x2.baseVal.value = x;
     line.y2.baseVal.value = y;
     const circle = this.#end;
     circle.cx.baseVal.value = x;
     circle.cy.baseVal.value = y;
     this.#currentValue = newValue;
+    this.displayValue();
   }
   /**
    * Roll back to this
@@ -117,9 +132,25 @@ class PathInfo {
   undo() {
     this.currentValue = this.#undo;
   }
+  /**
+   * We'd go back to this if someone called undo().
+   * The next time someone saves we will draw a strength line between this point and the point being saved.
+   */
+  get lastSaved() {
+    return this.#undo;
+  }
+  readonly #valueDiv: HTMLDivElement;
+  private displayValue() {
+    this.#valueDiv.innerText = formatComplex(this.#currentValue);
+  }
   constructor(public readonly color: string, initialValue: Complex) {
     this.#currentValue = initialValue;
     this.#undo = initialValue;
+    const valueDiv = document.createElement("div");
+    valueDiv.style.color = color;
+    positionInfoDiv.appendChild(valueDiv);
+    this.#valueDiv = valueDiv;
+    this.displayValue();
     const x = initialValue.re;
     const y = -initialValue.im;
     // <circle cx="2" cy="0" r="0.2" style="--base-color: red"></circle>
@@ -145,15 +176,30 @@ class PathInfo {
     square.height.baseVal.value = size;
     square.style.setProperty("--base-color", color);
     bottomGroup.appendChild(square);
+    this.newLine();
+  }
+  private newLine() {
+    const currentValue = this.#currentValue;
+    const x = currentValue.re;
+    const y = -currentValue.im;
     // <line x1="4" y1="0" x2="3" y2="-1.5" stroke="black"></line>
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.x1.baseVal.value = x;
     line.y1.baseVal.value = y;
     line.x2.baseVal.value = x;
     line.y2.baseVal.value = y;
-    line.setAttribute("stroke", color);
+    line.setAttribute("stroke", this.color);
+    line.classList.add("active");
+    this.#lastSegment?.classList?.remove("active");
     mainGroup.appendChild(line);
     this.#lastSegment = line;
+    this.#undo = currentValue;
+  }
+  save() {
+    if (this.#currentValue.equals(this.#undo)) {
+      return;
+    }
+    this.newLine();
   }
 }
 
@@ -165,6 +211,7 @@ class PathInfo {
 function init() {
   mainGroup.innerHTML = "";
   topGroup.innerHTML = "";
+  positionInfoDiv.innerHTML = "";
   for (const badPoint of formula.badPoints) {
     //        <circle class="bad-point" cx="0" cy="0" r="0.1"></circle>
     const circle = document.createElementNS(
@@ -201,7 +248,7 @@ function updateZ(z: Complex) {
   for (const wsInOrder of permutations(formula.allWs(z))) {
     let change = 0;
     for (const [w, path] of zip(wsInOrder, wPaths)) {
-      change += w.sub(path.currentValue).abs();
+      change += w.sub(path.lastSaved).abs();
     }
     if (change < bestChange) {
       bestChange = change;
@@ -237,20 +284,25 @@ function cursorToComplex(evt: MouseEvent) {
   return new Complex(scaled.x, -scaled.y);
 }
 
-svg.addEventListener("mouseleave", (event) => {
-  // TODO undo all of the recent changes.
-  //console.log(event);
+function saveAll() {
+  zPath.save();
+  wPaths.forEach((path) => path.save());
+}
+
+svg.addEventListener("mouseleave", () => {
+  zPath.undo();
+  wPaths.forEach((path) => path.undo());
 });
 svg.addEventListener("mousemove", (event) => {
-  //console.log(event);
-  // TODO move the updateZ() to here.
-});
-svg.addEventListener("mouseup", (event) => {
-  //console.log(event);
-  //console.log(cursorToComplex(event));
   updateZ(cursorToComplex(event));
-  // TODO this should save the current position.
-  // Save doesn't exist yet!
+  if (event.buttons & 1) {
+    saveAll();
+  }
 });
+svg.addEventListener("mouseup", (_event) => {
+  saveAll();
+});
+// TODO add corresponding touch events.
 
-//let z = formula.initialZ;
+// TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
+// When they get below 10% just delete them.

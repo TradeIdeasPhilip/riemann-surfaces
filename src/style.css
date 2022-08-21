@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap");
 [style*="--base-color:"] {
   stroke: var(--base-color);
   fill: var(--base-color);
@@ -14,5 +15,16 @@ svg {
 }
 line {
   stroke-width: 0.05;
-  stroke-linecap: round; 
+  stroke-linecap: round;
+}
+line.active {
+  stroke-dasharray: 0.1 0.15;
+  stroke-dashoffset: 0.1;
+}
+#positionInfo {
+  display: flex;
+  font-family: "Source Code Pro", monospace;
+  gap: 0.25em 1em;
+  flex-wrap: wrap;
+  justify-content: space-around;
 }
