@@ -27,5 +27,5 @@ line.active {
   font-family: "Source Code Pro", monospace;
   gap: 0.25em 1em;
   flex-wrap: wrap;
-  justify-content: space-around;
+  justify-content: space-evenly;
 }

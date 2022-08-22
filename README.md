@@ -25,7 +25,7 @@ The 𝒘 values will update automatically.
 Click save the point and continue your path.
 Hold the mouse button down to record your entire path, without any preview.
 
-Currently this is hardcoded to 𝒛=𝒘². As known as 𝒘=±√𝒛.
+Use the dropdown list to pick a function to graph.
 
 ## Alternate View
 

@@ -30,6 +30,31 @@ function* permutations<T>(
 }
 //console.log(Array.from(permutations(["A", "B", "C"])), Array.from(permutations([1 , 2, 3, 4])), Array.from(permutations([])));
 
+function reorderToMatchPast(
+  current: readonly Complex[],
+  past: undefined | readonly Complex[]
+): readonly Complex[] {
+  if (!(past instanceof Array)) {
+    return current;
+  }
+  if (current.length != past.length) {
+    throw new Error("wtf");
+  }
+  let bestChange = Infinity;
+  let bestOrder!: readonly Complex[];
+  for (const currentButReordered of permutations(current)) {
+    let change = 0;
+    for (const [currentValue, pastValue] of zip(currentButReordered, past)) {
+      change += currentValue.sub(pastValue).abs();
+    }
+    if (change < bestChange) {
+      bestChange = change;
+      bestOrder = currentButReordered;
+    }
+  }
+  return bestOrder;
+}
+
 type Formula = {
   /**
    * This would be good to show in a combo box.
@@ -40,7 +65,7 @@ type Formula = {
    * @param z
    * @returns An array containing all possible solutions.
    */
-  allWs(z: Complex): Complex[];
+  allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[];
   /**
    * Check a solution.
    * @param w
@@ -62,9 +87,10 @@ type Formula = {
 const formulas: Formula[] = [
   {
     shortName: "Square Root",
-    allWs(z: Complex): Complex[] {
+    allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
       const primary = z.sqrt();
-      return [primary, primary.neg()];
+      const newWs = [primary, primary.neg()];
+      return reorderToMatchPast(newWs, previousWs);
     },
     error(w: Complex, z: Complex): number {
       return w.pow(2).sub(z).abs();
@@ -76,14 +102,21 @@ const formulas: Formula[] = [
   // This is different from the square root because ln() has an infinite number of w's and we're just showing one of them.
   {
     shortName: "Natural Log",
-    allWs(z: Complex): Complex[] {
-      return [z.log()];
+    allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
+      const primary = z.log();
+      if (previousWs) {
+        const diff = previousWs[0].im - primary.im;
+        const d1 = Math.round(diff / (Math.PI * 2)) * Math.PI * 2;
+        return [new Complex(primary.re, primary.im + d1)];
+      } else {
+        return [primary];
+      }
     },
     error(w: Complex, z: Complex): number {
       return w.exp().sub(z).abs();
     },
     badPoints: [Complex.ZERO],
-    initialZ: new Complex(1),
+    initialZ: Complex.E,
   },
 ];
 
@@ -273,19 +306,13 @@ formulaSelect.addEventListener("change", () => {
  */
 function updateZ(z: Complex) {
   zPath.currentValue = z;
-  let bestChange = Infinity;
-  let bestWsInOrder!: readonly Complex[];
-  for (const wsInOrder of permutations(formula.allWs(z))) {
-    let change = 0;
-    for (const [w, path] of zip(wsInOrder, wPaths)) {
-      change += w.sub(path.lastSaved).abs();
-    }
-    if (change < bestChange) {
-      bestChange = change;
-      bestWsInOrder = wsInOrder;
-    }
-  }
-  for (const [w, path] of zip(bestWsInOrder, wPaths)) {
+  for (const [w, path] of zip(
+    formula.allWs(
+      z,
+      wPaths.map((path) => path.lastSaved)
+    ),
+    wPaths
+  )) {
     path.currentValue = w;
   }
 }
