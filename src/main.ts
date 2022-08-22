@@ -30,24 +30,17 @@ function* permutations<T>(
 }
 //console.log(Array.from(permutations(["A", "B", "C"])), Array.from(permutations([1 , 2, 3, 4])), Array.from(permutations([])));
 
-/**
- * Eventually the user will get the option to choose between multiple formulas.
- * This is the info that will have to change when the user makes a decision.
- */
-const formula = {
+type Formula = {
   /**
    * This would be good to show in a combo box.
    */
-  shortName: "Square Root",
+  readonly shortName: string;
   /**
    * Solve for w given a specific value of z.
    * @param z
    * @returns An array containing all possible solutions.
    */
-  allWs(z: Complex): Complex[] {
-    const primary = z.sqrt();
-    return [primary, primary.neg()];
-  },
+  allWs(z: Complex): Complex[];
   /**
    * Check a solution.
    * @param w
@@ -58,15 +51,48 @@ const formula = {
    * Due to round off error we'd expect a very small value here.
    * A large value would suggest that there is a bug in the code.
    */
-  error(w: Complex, z: Complex): number {
-    return w.pow(2).sub(z).abs();
-  },
+  error(w: Complex, z: Complex): number;
   /**
    * In calculus terminology these are "Branch points".
    */
-  badPoints: [Complex.ZERO],
-  initialZ: new Complex(4),
+  readonly badPoints: readonly Complex[];
+  readonly initialZ: Complex;
 };
+
+const formulas: Formula[] = [
+  {
+    shortName: "Square Root",
+    allWs(z: Complex): Complex[] {
+      const primary = z.sqrt();
+      return [primary, primary.neg()];
+    },
+    error(w: Complex, z: Complex): number {
+      return w.pow(2).sub(z).abs();
+    },
+    badPoints: [Complex.ZERO],
+    initialZ: new Complex(4),
+  },
+  // The natural log should not jump.  TODO Fix the analytic continuation.
+  // This is different from the square root because ln() has an infinite number of w's and we're just showing one of them.
+  {
+    shortName: "Natural Log",
+    allWs(z: Complex): Complex[] {
+      return [z.log()];
+    },
+    error(w: Complex, z: Complex): number {
+      return w.exp().sub(z).abs();
+    },
+    badPoints: [Complex.ZERO],
+    initialZ: new Complex(1),
+  },
+];
+
+const formulaSelect = getById("formula", HTMLSelectElement);
+formulas.forEach((formula) => {
+  const option = document.createElement("option");
+  option.innerText = formula.shortName;
+  formulaSelect.appendChild(option);
+});
 
 const bottomGroup = getById("bottom", SVGGElement);
 const mainGroup = getById("main", SVGGElement);
@@ -203,15 +229,23 @@ class PathInfo {
   }
 }
 
-/**
- * Load the initial state for the given formula.
- * Each path will start and end at the same point and have a length of 0.
- * @returns The `PathInfo` objects.
- */
+let formula!: Formula;
+let zPath!: PathInfo;
+let wPaths!: PathInfo[];
+
 function init() {
+  bottomGroup.innerHTML = "";
   mainGroup.innerHTML = "";
   topGroup.innerHTML = "";
   positionInfoDiv.innerHTML = "";
+  formula = formulas[formulaSelect.selectedIndex];
+  const z = formula.initialZ;
+  zPath = new PathInfo("black", z);
+  const wValues = formula.allWs(z);
+  wPaths = wValues.map((w, index) => {
+    const color = `hsl(${index / wValues.length}turn, 100%, 50%)`;
+    return new PathInfo(color, w);
+  });
   for (const badPoint of formula.badPoints) {
     //        <circle class="bad-point" cx="0" cy="0" r="0.1"></circle>
     const circle = document.createElementNS(
@@ -222,19 +256,15 @@ function init() {
     circle.cx.baseVal.value = badPoint.re;
     circle.cy.baseVal.value = -badPoint.im;
     circle.r.baseVal.value = 0.1;
-    mainGroup.appendChild(circle);
+    topGroup.appendChild(circle);
   }
-  const z = formula.initialZ;
-  const zPath = new PathInfo("black", z);
-  const wValues = formula.allWs(z);
-  const wPaths = wValues.map((w, index) => {
-    const color = `hsl(${index / wValues.length}turn, 100%, 50%)`;
-    return new PathInfo(color, w);
-  });
-  return { zPath, wPaths };
 }
 
-let { zPath, wPaths } = init();
+init();
+
+formulaSelect.addEventListener("change", () => {
+  init();
+});
 
 /**
  * Extend the z path to the given point.
