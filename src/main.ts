@@ -307,6 +307,8 @@ formulaSelect.addEventListener("change", () => {
   init();
 });
 
+getById("reset", HTMLButtonElement).addEventListener("click", () => init());
+
 /**
  * Extend the z path to the given point.
  * Solve each of the w's and move their paths to the corresponding points.
@@ -373,8 +375,6 @@ svg.addEventListener("mouseup", (_event) => {
 // When they get below 10% just delete them.
 
 // TODO check for error and print the result.
-
-// TODO add a clear or reset button.
 
 // TODO add the cubic polynomial from the original problem.
 
