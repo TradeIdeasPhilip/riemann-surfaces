@@ -103,13 +103,23 @@ const formulas: Formula[] = [
   {
     shortName: "Natural Log",
     allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
+      function adjustIm(base: Complex, toAdd: number) {
+        return base.add(0, toAdd);
+      }
       const primary = z.log();
       if (previousWs) {
-        const diff = previousWs[0].im - primary.im;
-        const d1 = Math.round(diff / (Math.PI * 2)) * Math.PI * 2;
-        return [new Complex(primary.re, primary.im + d1)];
+        return previousWs.map((previousW) => {
+          const difference = previousW.im - primary.im;
+          const adjustment =
+            Math.round(difference / (Math.PI * 2)) * Math.PI * 2;
+          return adjustIm(primary, adjustment);
+        });
       } else {
-        return [primary];
+        return [
+          adjustIm(primary, Math.PI * 2),
+          primary,
+          adjustIm(primary, -Math.PI * 2),
+        ];
       }
     },
     error(w: Complex, z: Complex): number {
@@ -363,3 +373,21 @@ svg.addEventListener("mouseup", (_event) => {
 
 // TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
 // When they get below 10% just delete them.
+
+// TODO check for error and print the result.
+
+// TODO add a clear or reset button.
+
+// TODO add the cubic polynomial from the original problem.
+
+// TODO add some buttons to do demos, like circles and squares.
+// For the square root, consider a simple diamond (rotated square) with only 4 points, to show off the octagon it creates.
+// Then a version with one point in the middle of each segment, so you can see the sides of the octagon bow in slightly.
+// Then a version two a few more points to make up each segment.
+// Then clear it and do a diamond with a whole lot of points, especially right near the corners.
+// If I remember correctly, the angles should be 90 degrees.
+// Maybe repeat that last detailed step with other shapes, like a triangle.
+// If I remember correctly, the input and the output should have identical angles.
+// For the log, make a perfect circle or three around the origin.
+// Then move to a bigger radius.
+// Then perfect circles in the opposite direction.

@@ -11,7 +11,7 @@ If you believe in imaginary numbers, it **also** equals 2𝓲 and -2𝓲.
 
 ## Terminology
 
-For a given 𝒛 there can be multiple 𝒘's.
+For a given 𝒛 there can be multiple values for 𝒘.
 For a given 𝒘 there can be only one 𝒛.
 E.g. 𝒛=𝒘².
 
