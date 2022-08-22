@@ -36,9 +36,9 @@ This image from Wikipedia is a common way to show a Riemann surface, like the on
 𝒛 is a point on this structure which was made by grafting two complex planes together.
 𝒛 has to make **two** complete rotations around the point in the center (where all the grid lines meet) before it gets back to the same place on this surface.
 
-That point in the center is often called a "branch point" in calculus class.
-It is called a "bad" point in this code.
-This program draws this points as brown dots.
+That point in the center is often called a "branch point."
+It was called a "bad" point in the original TCL code.
+This program draws these points as brown dots.
 
 Each position on this Riemann surface maps to exactly one value of 𝒘.
 

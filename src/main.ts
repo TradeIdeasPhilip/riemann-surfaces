@@ -80,7 +80,7 @@ type Formula = {
   /**
    * In calculus terminology these are "Branch points".
    */
-  readonly badPoints: readonly Complex[];
+  readonly branchPoints: readonly Complex[];
   readonly initialZ: Complex;
 };
 
@@ -95,11 +95,9 @@ const formulas: Formula[] = [
     error(w: Complex, z: Complex): number {
       return w.pow(2).sub(z).abs();
     },
-    badPoints: [Complex.ZERO],
+    branchPoints: [Complex.ZERO],
     initialZ: new Complex(4),
   },
-  // The natural log should not jump.  TODO Fix the analytic continuation.
-  // This is different from the square root because ln() has an infinite number of w's and we're just showing one of them.
   {
     shortName: "Natural Log",
     allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
@@ -125,7 +123,7 @@ const formulas: Formula[] = [
     error(w: Complex, z: Complex): number {
       return w.exp().sub(z).abs();
     },
-    badPoints: [Complex.ZERO],
+    branchPoints: [Complex.ZERO],
     initialZ: Complex.E,
   },
 ];
@@ -289,15 +287,15 @@ function init() {
     const color = `hsl(${index / wValues.length}turn, 100%, 50%)`;
     return new PathInfo(color, w);
   });
-  for (const badPoint of formula.badPoints) {
-    //        <circle class="bad-point" cx="0" cy="0" r="0.1"></circle>
+  for (const branchPoint of formula.branchPoints) {
+    //        <circle class="branch-point" cx="0" cy="0" r="0.1"></circle>
     const circle = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "circle"
     );
-    circle.classList.add("bad-point");
-    circle.cx.baseVal.value = badPoint.re;
-    circle.cy.baseVal.value = -badPoint.im;
+    circle.classList.add("branch-point");
+    circle.cx.baseVal.value = branchPoint.re;
+    circle.cy.baseVal.value = -branchPoint.im;
     circle.r.baseVal.value = 0.1;
     topGroup.appendChild(circle);
   }
