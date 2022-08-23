@@ -18,7 +18,7 @@ https://tradeideasphilip.github.io/riemann-surfaces/
 This is an interactive program.
 Use the mouse to move the 𝒛 value.
 The 𝒘 values will update automatically.
-Click save the point and continue your path.
+Click to save the point and continue your path.
 Hold the mouse button down to record your entire path, without any preview.
 
 Use the dropdown list to pick a function to graph.
@@ -73,7 +73,7 @@ Each position on this Riemann surface maps to exactly one value of 𝒘.
 There is nothing special about the ray where the green and purple overlap.
 This is just an artifact of how someone chose to draw this surface.
 You could slide that intersection somewhere else and the picture would mean the same thing.
-The advantage of this program over a picture like this one is that my program shows the total symmetry of the problem.
+The advantage of my program over a picture like this one is that my program shows the total symmetry of the problem.
 
 ## History
 
