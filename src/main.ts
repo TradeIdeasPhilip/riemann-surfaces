@@ -116,9 +116,11 @@ const formulas: Formula[] = [
         });
       } else {
         return [
+          adjustIm(primary, Math.PI * 4),
           adjustIm(primary, Math.PI * 2),
           primary,
           adjustIm(primary, -Math.PI * 2),
+          adjustIm(primary, -Math.PI * 4),
         ];
       }
     },
@@ -200,16 +202,40 @@ const topGroup = getById("top", SVGGElement);
 const positionInfoDiv = getById("positionInfo", HTMLDivElement);
 const errorInfoDiv = getById("errorInfo", HTMLDivElement);
 
-const formatter1 = new Intl.NumberFormat(undefined, {
+// Focus on en-US because I'm doing some very specific things with the
+// output, not just printing it as is.  I don't want to test this in
+// multiple locales!
+const formatter = new Intl.NumberFormat("en-US", {
+  minimumSignificantDigits: 4,
   maximumSignificantDigits: 4,
-});
-const formatter2 = new Intl.NumberFormat(undefined, {
-  maximumSignificantDigits: 4,
-  signDisplay: "always",
 });
 
 function formatComplex(complex: Complex) {
-  return `${formatter1.format(complex.re)}${formatter2.format(complex.im)}𝓲`;
+  const real = complex.re;
+  const imaginary = complex.im;
+  let result = "";
+  if ((real | 0) == real) {
+    // This is an integer.  The default formatter will
+    // display nothing after the decimal point.
+    // Google "trailingZeroDisplay stripIfInteger" for more info.
+    result += real;
+  } else {
+    // Always show 4 digits.  I tried removing all optional 0s,
+    // but that made my display jump around a lot.
+    result += formatter.format(real);
+  }
+  if (imaginary != 0) {
+    if (imaginary > 0) {
+      result += "+";
+    }
+    if ((imaginary | 0) == imaginary) {
+      result += imaginary;
+    } else {
+      result += formatter.format(imaginary);
+    }
+    result += "𝓲";
+  }
+  return result;
 }
 
 /**
@@ -438,7 +464,6 @@ svg.addEventListener("mousemove", (event) => {
 svg.addEventListener("mouseup", (_event) => {
   saveAll();
 });
-// TODO add corresponding touch events.
 
 // TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
 // When they get below 10% just delete them.
@@ -454,3 +479,5 @@ svg.addEventListener("mouseup", (_event) => {
 // For the log, make a perfect circle or three around the origin.
 // Then move to a bigger radius.
 // Then perfect circles in the opposite direction.
+
+// TODO Add a button to save the SVG image.

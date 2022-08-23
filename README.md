@@ -21,6 +21,9 @@ The 𝒘 values will update automatically.
 Click to save the point and continue your path.
 Hold the mouse button down to record your entire path, without any preview.
 
+(On a touch device you can just touch to add the next point.
+Currently there is no preview or drag option unless you use a mouse.)
+
 Use the dropdown list to pick a function to graph.
 
 ### Square Root
@@ -43,7 +46,7 @@ The angle part of 𝒛 sets the imaginary part of the result.
 If 𝒛 makes a full circle around the origin in the counter clockwise direction, then you add 2π𝓲 to the result.
 If you keep rotating the input in the same direction, the output will keep moving at the same rate and can go on forever.
 
-This program plots 3 of the infinite number of solutions.
+This program plots 5 of the infinite number of solutions.
 
 ### P(𝒛,𝒘)=𝒘³-𝒛·𝒘-2=0
 
