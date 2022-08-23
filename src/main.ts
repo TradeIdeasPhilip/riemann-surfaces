@@ -1,7 +1,7 @@
 import "./style.css";
 import { Complex } from "complex.js";
 import { getById } from "phil-lib/client-misc";
-import { zip } from "phil-lib/misc";
+import { sum, zip } from "phil-lib/misc";
 
 // TODO shouldn't this move to phil-lib/client-misc.ts.
 /**
@@ -54,6 +54,8 @@ function reorderToMatchPast(
   }
   return bestOrder;
 }
+
+const ONE = new Complex(1);
 
 type Formula = {
   /**
@@ -126,6 +128,62 @@ const formulas: Formula[] = [
     branchPoints: [Complex.ZERO],
     initialZ: Complex.E,
   },
+  {
+    shortName: "w³-zw-2 = 0",
+    initialZ: Complex.ZERO,
+    branchPoints: [
+      new Complex(3),
+      new Complex({ r: 3, phi: (Math.PI * 2) / 3 }),
+      new Complex({ r: 3, phi: (Math.PI * 4) / 3 }),
+    ],
+    allWs(z, previousWs?) {
+      // Correction is used to choose the right 3rd root.  Otherwise the result
+      // will not be the roots of the equation.  This was determined by seeing
+      // what would make this function continuous.
+      // The rest of the logic is from Schaums with some algebra for the constant
+      // terms.
+
+      //set a [c_sqrt [c_- {1 0} [c_/ [c_cube $z] {27 0}]]]
+      const a = ONE.sub(z.pow(3).div(27)).sqrt();
+
+      //  if {[c_abs $z] == 0.0} {
+      //set correction {1 0}
+      //  } else {
+      //set correction [c_/ $z [c_nth_root [c_cube $z] 3]]
+      //  }
+      const correction = z.isZero() ? ONE : z.div(z.pow(3).pow(1 / 3));
+
+      //  set S [c_nth_root [c_+ {1 0} $a] 3]
+      const S = ONE.add(a).pow(1 / 3);
+
+      //  set T [c_nth_root [c_- {1 0} $a] 3]
+      //  set T [c_* $T $correction]
+      const T = correction.mul(ONE.sub(a).pow(1 / 3));
+
+      //  set root1 [c_+ $S $T]
+      const root1 = S.add(T);
+
+      //  set b [c_* {0.0 0.866025403785} [c_- $S $T]]
+      const b = S.sub(T).mul(0.0, 0.866025403785);
+
+      //  set c [c_* {-0.5 0.0} [c_+ $S $T]]
+      const c = S.add(T).mul(-0.5);
+
+      //  set root2 [c_+ $c $b]
+      const root2 = c.add(b);
+
+      //  set root3 [c_- $c $b]
+      const root3 = c.sub(b);
+
+      //  list $root1 $root2 $root3
+      return reorderToMatchPast([root1, root2, root3], previousWs);
+      //return [root1, root2, root3];
+      //return [root1];
+    },
+    error(w, z) {
+      return w.pow(3).sub(z.mul(w)).sub(2).abs();
+    },
+  },
 ];
 
 const formulaSelect = getById("formula", HTMLSelectElement);
@@ -140,6 +198,7 @@ const mainGroup = getById("main", SVGGElement);
 const topGroup = getById("top", SVGGElement);
 
 const positionInfoDiv = getById("positionInfo", HTMLDivElement);
+const errorInfoDiv = getById("errorInfo", HTMLDivElement);
 
 const formatter1 = new Intl.NumberFormat(undefined, {
   maximumSignificantDigits: 4,
@@ -287,6 +346,7 @@ function init() {
     const color = `hsl(${index / wValues.length}turn, 100%, 50%)`;
     return new PathInfo(color, w);
   });
+  checkForError();
   for (const branchPoint of formula.branchPoints) {
     //        <circle class="branch-point" cx="0" cy="0" r="0.1"></circle>
     const circle = document.createElementNS(
@@ -309,6 +369,14 @@ formulaSelect.addEventListener("change", () => {
 
 getById("reset", HTMLButtonElement).addEventListener("click", () => init());
 
+function checkForError() {
+  const z = zPath.currentValue;
+  const totalError = sum(
+    wPaths.map((wPath) => formula.error(wPath.currentValue, z))
+  );
+  errorInfoDiv.innerText = `Total error = ${totalError}`;
+}
+
 /**
  * Extend the z path to the given point.
  * Solve each of the w's and move their paths to the corresponding points.
@@ -325,6 +393,7 @@ function updateZ(z: Complex) {
   )) {
     path.currentValue = w;
   }
+  checkForError();
 }
 
 // Export the updateZ() function to the JavaScript console for debug purposes.
@@ -373,10 +442,6 @@ svg.addEventListener("mouseup", (_event) => {
 
 // TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
 // When they get below 10% just delete them.
-
-// TODO check for error and print the result.
-
-// TODO add the cubic polynomial from the original problem.
 
 // TODO add some buttons to do demos, like circles and squares.
 // For the square root, consider a simple diamond (rotated square) with only 4 points, to show off the octagon it creates.
