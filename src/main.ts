@@ -1,7 +1,7 @@
 import "./style.css";
 import { Complex } from "complex.js";
 import { getById } from "phil-lib/client-misc";
-import { sum, zip } from "phil-lib/misc";
+import { count, initializedArray, sleep, sum, zip } from "phil-lib/misc";
 
 // TODO shouldn't this move to phil-lib/client-misc.ts.
 /**
@@ -30,6 +30,15 @@ function* permutations<T>(
 }
 //console.log(Array.from(permutations(["A", "B", "C"])), Array.from(permutations([1 , 2, 3, 4])), Array.from(permutations([])));
 
+/**
+ * This will attempt to reorder the `current` array to be as similar as possible to the `past` array.
+ *
+ * If you are plotting _all_ results of a formula, this is a good way to make sure that the 𝒘 values update smoothly.
+ * @param current A list of valid 𝒘 values.
+ * @param past The most recently plotted 𝒘 values.
+ * Leave this blank if we are starting a new plot.
+ * @returns A permutation of `current`.
+ */
 function reorderToMatchPast(
   current: readonly Complex[],
   past: undefined | readonly Complex[]
@@ -57,6 +66,9 @@ function reorderToMatchPast(
 
 const ONE = new Complex(1);
 
+/**
+ * Something to plot.  What makes √𝒛 different from ln(𝒛)?
+ */
 type Formula = {
   /**
    * This would be good to show in a combo box.
@@ -86,108 +98,118 @@ type Formula = {
   readonly initialZ: Complex;
 };
 
+const squareRootFormula: Formula = {
+  shortName: "Square Root",
+  allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
+    const primary = z.sqrt();
+    const newWs = [primary, primary.neg()];
+    return reorderToMatchPast(newWs, previousWs);
+  },
+  error(w: Complex, z: Complex): number {
+    return w.pow(2).sub(z).abs();
+  },
+  branchPoints: [Complex.ZERO],
+  initialZ: new Complex(4),
+};
+const naturalLogFormula: Formula = {
+  shortName: "Natural Log",
+  allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
+    function adjustIm(base: Complex, toAdd: number) {
+      return base.add(0, toAdd);
+    }
+    const primary = z.log();
+    if (previousWs) {
+      return previousWs.map((previousW) => {
+        const difference = previousW.im - primary.im;
+        const adjustment = Math.round(difference / (Math.PI * 2)) * Math.PI * 2;
+        return adjustIm(primary, adjustment);
+      });
+    } else {
+      return [
+        adjustIm(primary, Math.PI * 4),
+        adjustIm(primary, Math.PI * 2),
+        primary,
+        adjustIm(primary, -Math.PI * 2),
+        adjustIm(primary, -Math.PI * 4),
+      ];
+    }
+  },
+  error(w: Complex, z: Complex): number {
+    return w.exp().sub(z).abs();
+  },
+  branchPoints: [Complex.ZERO],
+  initialZ: Complex.E,
+};
+const originalPolynomialFormula: Formula = {
+  shortName: "𝒘³-𝒛𝒘-2 = 0",
+  initialZ: Complex.ZERO,
+  branchPoints: [
+    new Complex(3),
+    new Complex({ r: 3, phi: (Math.PI * 2) / 3 }),
+    new Complex({ r: 3, phi: (Math.PI * 4) / 3 }),
+  ],
+  allWs(z, previousWs?) {
+    // Correction is used to choose the right 3rd root.  Otherwise the result
+    // will not be the roots of the equation.  This was determined by seeing
+    // what would make this function continuous.
+    // The rest of the logic is from Schaums with some algebra for the constant
+    // terms.
+
+    //set a [c_sqrt [c_- {1 0} [c_/ [c_cube $z] {27 0}]]]
+    const a = ONE.sub(z.pow(3).div(27)).sqrt();
+
+    //  if {[c_abs $z] == 0.0} {
+    //set correction {1 0}
+    //  } else {
+    //set correction [c_/ $z [c_nth_root [c_cube $z] 3]]
+    //  }
+    const correction = z.isZero() ? ONE : z.div(z.pow(3).pow(1 / 3));
+
+    //  set S [c_nth_root [c_+ {1 0} $a] 3]
+    const S = ONE.add(a).pow(1 / 3);
+
+    //  set T [c_nth_root [c_- {1 0} $a] 3]
+    //  set T [c_* $T $correction]
+    const T = correction.mul(ONE.sub(a).pow(1 / 3));
+
+    //  set root1 [c_+ $S $T]
+    const root1 = S.add(T);
+
+    //  set b [c_* {0.0 0.866025403785} [c_- $S $T]]
+    const b = S.sub(T).mul(0.0, 0.866025403785);
+
+    //  set c [c_* {-0.5 0.0} [c_+ $S $T]]
+    const c = S.add(T).mul(-0.5);
+
+    //  set root2 [c_+ $c $b]
+    const root2 = c.add(b);
+
+    //  set root3 [c_- $c $b]
+    const root3 = c.sub(b);
+
+    //  list $root1 $root2 $root3
+    return reorderToMatchPast([root1, root2, root3], previousWs);
+    //return [root1, root2, root3];
+    //return [root1];
+  },
+  error(w, z) {
+    return w.pow(3).sub(z.mul(w)).sub(2).abs();
+  },
+};
+
+/**
+ * These are the formulas in the drop down.
+ * These _must_ appear in the same order in both places.
+ */
 const formulas: Formula[] = [
-  {
-    shortName: "Square Root",
-    allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
-      const primary = z.sqrt();
-      const newWs = [primary, primary.neg()];
-      return reorderToMatchPast(newWs, previousWs);
-    },
-    error(w: Complex, z: Complex): number {
-      return w.pow(2).sub(z).abs();
-    },
-    branchPoints: [Complex.ZERO],
-    initialZ: new Complex(4),
-  },
-  {
-    shortName: "Natural Log",
-    allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
-      function adjustIm(base: Complex, toAdd: number) {
-        return base.add(0, toAdd);
-      }
-      const primary = z.log();
-      if (previousWs) {
-        return previousWs.map((previousW) => {
-          const difference = previousW.im - primary.im;
-          const adjustment =
-            Math.round(difference / (Math.PI * 2)) * Math.PI * 2;
-          return adjustIm(primary, adjustment);
-        });
-      } else {
-        return [
-          adjustIm(primary, Math.PI * 4),
-          adjustIm(primary, Math.PI * 2),
-          primary,
-          adjustIm(primary, -Math.PI * 2),
-          adjustIm(primary, -Math.PI * 4),
-        ];
-      }
-    },
-    error(w: Complex, z: Complex): number {
-      return w.exp().sub(z).abs();
-    },
-    branchPoints: [Complex.ZERO],
-    initialZ: Complex.E,
-  },
-  {
-    shortName: "w³-zw-2 = 0",
-    initialZ: Complex.ZERO,
-    branchPoints: [
-      new Complex(3),
-      new Complex({ r: 3, phi: (Math.PI * 2) / 3 }),
-      new Complex({ r: 3, phi: (Math.PI * 4) / 3 }),
-    ],
-    allWs(z, previousWs?) {
-      // Correction is used to choose the right 3rd root.  Otherwise the result
-      // will not be the roots of the equation.  This was determined by seeing
-      // what would make this function continuous.
-      // The rest of the logic is from Schaums with some algebra for the constant
-      // terms.
-
-      //set a [c_sqrt [c_- {1 0} [c_/ [c_cube $z] {27 0}]]]
-      const a = ONE.sub(z.pow(3).div(27)).sqrt();
-
-      //  if {[c_abs $z] == 0.0} {
-      //set correction {1 0}
-      //  } else {
-      //set correction [c_/ $z [c_nth_root [c_cube $z] 3]]
-      //  }
-      const correction = z.isZero() ? ONE : z.div(z.pow(3).pow(1 / 3));
-
-      //  set S [c_nth_root [c_+ {1 0} $a] 3]
-      const S = ONE.add(a).pow(1 / 3);
-
-      //  set T [c_nth_root [c_- {1 0} $a] 3]
-      //  set T [c_* $T $correction]
-      const T = correction.mul(ONE.sub(a).pow(1 / 3));
-
-      //  set root1 [c_+ $S $T]
-      const root1 = S.add(T);
-
-      //  set b [c_* {0.0 0.866025403785} [c_- $S $T]]
-      const b = S.sub(T).mul(0.0, 0.866025403785);
-
-      //  set c [c_* {-0.5 0.0} [c_+ $S $T]]
-      const c = S.add(T).mul(-0.5);
-
-      //  set root2 [c_+ $c $b]
-      const root2 = c.add(b);
-
-      //  set root3 [c_- $c $b]
-      const root3 = c.sub(b);
-
-      //  list $root1 $root2 $root3
-      return reorderToMatchPast([root1, root2, root3], previousWs);
-      //return [root1, root2, root3];
-      //return [root1];
-    },
-    error(w, z) {
-      return w.pow(3).sub(z.mul(w)).sub(2).abs();
-    },
-  },
+  squareRootFormula,
+  naturalLogFormula,
+  originalPolynomialFormula,
 ];
 
+/**
+ * The drop down where the user can pick a `Formula`.
+ */
 const formulaSelect = getById("formula", HTMLSelectElement);
 formulas.forEach((formula) => {
   const option = document.createElement("option");
@@ -195,11 +217,30 @@ formulas.forEach((formula) => {
   formulaSelect.appendChild(option);
 });
 
+/**
+ * The marker for the __start__ of each path goes on the bottom.
+ * I.e. the part of the path that is fixed.
+ * Other things can cover it.
+ */
 const bottomGroup = getById("bottom", SVGGElement);
+
+/**
+ * Draw the lines here.
+ */
 const mainGroup = getById("main", SVGGElement);
+
+/**
+ * The marker for the end of each path should go on top.
+ * Ie. the part of the path that keeps moving.
+ * This will be drawn on top of everything else.
+ */
 const topGroup = getById("top", SVGGElement);
 
+/**
+ * The current values of each input and output, printed as numbers.
+ */
 const positionInfoDiv = getById("positionInfo", HTMLDivElement);
+
 const errorInfoDiv = getById("errorInfo", HTMLDivElement);
 
 // Focus on en-US because I'm doing some very specific things with the
@@ -210,6 +251,11 @@ const formatter = new Intl.NumberFormat("en-US", {
   maximumSignificantDigits: 4,
 });
 
+/**
+ * Format the number so it's easy to read.
+ * @param complex The number to display.
+ * @returns The same number as a user readable string.
+ */
 function formatComplex(complex: Complex) {
   const real = complex.re;
   const imaginary = complex.im;
@@ -239,7 +285,7 @@ function formatComplex(complex: Complex) {
 }
 
 /**
- * This describes the path of the z or one of the w's.
+ * This describes the path of the 𝒛 or one of the 𝒘's.
  *
  * This contains pointers to the relevant GUI items and to the relevant numerical values.
  */
@@ -252,6 +298,17 @@ class PathInfo {
    * The line segment currently connected to the end.
    */
   #lastSegment?: SVGLineElement;
+  /**
+   * The line segment currently connected to the end.
+   * This has not been saved, yet, so one end can move.
+   *
+   * When you reset the screen, or you hit save, the program immediately creates this segment.
+   * Initially the segment will start and end at the same point, so you might not see it immediately.
+   * The next time you move the mouse, this segment will grow.
+   */
+  get lastSegment() {
+    return this.#lastSegment;
+  }
   /**
    * This is the end of the path that can move.
    */
@@ -355,16 +412,46 @@ class PathInfo {
   }
 }
 
+/**
+ * The formula we are currently plotting.
+ */
 let formula!: Formula;
+
+/**
+ * The GUI for the input.
+ */
 let zPath!: PathInfo;
+
+/**
+ * The GUI for the outputs.
+ */
 let wPaths!: PathInfo[];
 
-function init() {
+/**
+ * Select a formula and clear the screen.
+ * This function will reset everything even if the "new" formula is the same as the existing one.
+ *
+ * This will try to make the formula drop down match the `formula` variable.
+ * @param newFormula Switch to this formula.  If this is missing, use what the user selected from the GUI.
+ */
+function init(newFormula?: Formula) {
   bottomGroup.innerHTML = "";
   mainGroup.innerHTML = "";
   topGroup.innerHTML = "";
   positionInfoDiv.innerHTML = "";
-  formula = formulas[formulaSelect.selectedIndex];
+  // Try to make the formula drop down match the formula variable.
+  if (newFormula) {
+    formula = newFormula;
+    // If newFormula is in the drop down, select it.
+    // Otherwise go to index -1 which will display the empty string.
+    // TODO Look at https://stackoverflow.com/a/29806043/971955 to display something like "custom",
+    // which the user cannot select, but the programmer can.
+    formulaSelect.selectedIndex = formulas.indexOf(newFormula);
+  } else {
+    // Grab whatever the user selected.
+    // TODO throw an exception if there's nothing there?
+    formula = formulas[formulaSelect.selectedIndex];
+  }
   const z = formula.initialZ;
   zPath = new PathInfo("black", z);
   const wValues = formula.allWs(z);
@@ -393,8 +480,17 @@ formulaSelect.addEventListener("change", () => {
   init();
 });
 
-getById("reset", HTMLButtonElement).addEventListener("click", () => init());
+getById("reset", HTMLButtonElement).addEventListener("click", () =>
+  init(formula)
+);
 
+/**
+ * This exists mostly for the programmer to check his work, but we display it for everyone.
+ *
+ * There is no specific scale for the output.
+ * But the numbers should be very small, consistent with round off error.
+ * `Math.sin(Math.PI)` gives me 1.2246467991473532e-16, which shows the right order of magnitude for an acceptable error.
+ */
 function checkForError() {
   const z = zPath.currentValue;
   const totalError = sum(
@@ -422,12 +518,6 @@ function updateZ(z: Complex) {
   checkForError();
 }
 
-// Export the updateZ() function to the JavaScript console for debug purposes.
-// The inputs are 2 real numbers because the Complex class has not be exported to the console.
-(window as any).updateZ = (re: number, im: number) => {
-  updateZ(new Complex(re, im));
-};
-
 const svg = document.querySelector("svg")!;
 
 // https://stackoverflow.com/a/10298843/971955
@@ -446,27 +536,241 @@ function cursorToComplex(evt: MouseEvent) {
   return new Complex(scaled.x, -scaled.y);
 }
 
+/**
+ * Mark the current input and output so they stay on the screen.
+ */
 function saveAll() {
   zPath.save();
   wPaths.forEach((path) => path.save());
 }
 
 svg.addEventListener("mouseleave", () => {
+  // When the mouse is inside of the SVG, we will display a dotted line leading to the point under the mouse.
+  // This is a preview of what you would get if you clicked to save the current point to the path.
+  // When the mouse leaves the SVG, the following code will hide that preview.
   zPath.undo();
   wPaths.forEach((path) => path.undo());
 });
 svg.addEventListener("mousemove", (event) => {
+  // If the mouse button is up, Update the preview.
   updateZ(cursorToComplex(event));
   if (event.buttons & 1) {
+    // If the mouse button is down, save the new point immediately.
     saveAll();
   }
 });
 svg.addEventListener("mouseup", (_event) => {
+  // When the user clicks and releases the mouse button, save the current position.
   saveAll();
 });
 
+/**
+ * Change the current formula and update the GUI.
+ *
+ * This will always erase the old paths, even if you select the same formula that is currently active.
+ * @param toSelect Which formula do we want to use?
+ *
+ * A number will look up the formula from the drop down.  0 for the first entry.
+ *
+ * A string will find an entry in the drop down with `toSelect` as the `shortName`, the value we display for the user.
+ *
+ * You can add any formula.  It does not have to be listed in the drop down.
+ * This function will update the drop down to match the formula.
+ * @throws If you pick an invalid number or string, this will throw an exception.
+ */
+function selectFormula(toSelect: number | Formula | string) {
+  switch (typeof toSelect) {
+    case "number": {
+      const newFormula = formulas[toSelect];
+      if (!newFormula) {
+        throw new Error(`No such formula: ${toSelect}`);
+      }
+      init(newFormula);
+      break;
+    }
+    case "object": {
+      init(toSelect);
+      break;
+    }
+    case "string": {
+      const newFormula = formulas.find(
+        (possible) => possible.shortName == toSelect
+      );
+      if (!newFormula) {
+        throw new Error(`No such formula: "${toSelect}"`);
+      }
+      init(newFormula);
+      break;
+    }
+  }
+}
+
+/**
+ * Currently this is just for testing and development.
+ * You can only select this from the console.
+ */
+const sixthRootFormula: Formula = {
+  shortName: "Sixth Root",
+  allWs(z: Complex, previousWs?: readonly Complex[]): readonly Complex[] {
+    const power = 6;
+    const primary = z.pow(1 / power);
+    const newWs = initializedArray(power, (i) =>
+      primary.mul({ r: 1, phi: ((Math.PI * 2) / power) * i })
+    );
+    return reorderToMatchPast(newWs, previousWs);
+  },
+  error(w: Complex, z: Complex): number {
+    return w.pow(6).sub(z).abs();
+  },
+  branchPoints: [Complex.ZERO],
+  initialZ: new Complex(6),
+};
+
+/**
+ * Create a list of points that approximate a circle.
+ * @param center The center of the circle.
+ * @param start Where to start drawing.  Typically the currently selected point.
+ * @param steps The number of points to draw.
+ * A negative number means to move clockwise.
+ * A positive number means to move counterclockwise, i.e. the "mathematically positive direction."
+ * No point is counted twice.
+ *
+ * This should be a non-zero integer.
+ * @returns A list of points.
+ * The last point will be the same as the `start` point.
+ * The first point will be one step away from the `start` point.
+ */
+function makeCircle(center: Complex, start: Complex, steps: number) {
+  const initialOffset = start.sub(center);
+  const stepRotation = new Complex({ r: 1, phi: (2 * Math.PI) / steps });
+  const result = initializedArray(Math.abs(steps) - 1, (step) => {
+    return stepRotation
+      .pow(step + 1)
+      .mul(initialOffset)
+      .add(center);
+  });
+  result.push(start);
+  return result;
+}
+
+/**
+ * Create a list of points along a line segment.
+ * @param from Where to start drawing.
+ * The first point in the result will be one step past this.
+ * The assumption is that you're starting from the currently saved point.
+ * @param to Where to end.  The last point in the list will be exactly this.
+ * @param steps How many points do you want?  Should be an integer greater than 0.
+ * @returns A list of evenly spaced points between `from` and `to`, including `to` as the last value.
+ */
+function makeSegment(from: Complex, to: Complex, steps: number) {
+  const totalDistance = to.sub(from);
+  return initializedArray(steps, (step) =>
+    to.sub(totalDistance.mul((steps - step - 1) / steps))
+  );
+}
+
+/**
+ * Rotate a point around the origin by 90° counterclockwise.
+ * @param from The initial point.
+ * @returns from * 𝓲.  I'm doing it this way to avoid round off error.
+ */
+function rotate90(from: Complex) {
+  return new Complex({ re: -from.im, im: from.re });
+}
+
+/**
+ *
+ * @returns A set containing all of the preview lines.  I.e. the dotted lines.
+ *
+ * There is always a preview line for every input and output.
+ * Sometimes you don't see it because the beginning and end are at the same point,
+ * but it is still there.
+ */
+function savedLines() {
+  const notSaved = new Set([zPath, ...wPaths].map((path) => path.lastSegment));
+  return Array.from(svg.querySelectorAll("line")).filter(
+    (line) => !notSaved.has(line)
+  );
+}
+
+/**
+ * Run some automated demos.  Move the input and output according to a script.
+ *
+ * This is a work in progress.
+ */
+async function demo() {
+  selectFormula(squareRootFormula);
+  await sleep(100);
+  const steps = 30;
+  for (const z of makeCircle(Complex.ZERO, zPath.lastSaved, steps)) {
+    updateZ(z);
+    await sleep(3000 / steps);
+    saveAll();
+  }
+  savedLines().forEach((line) => line.classList.add("fat"));
+  await sleep(500);
+  for (const z of makeCircle(Complex.ZERO, zPath.lastSaved, steps)) {
+    updateZ(z);
+    saveAll();
+    await sleep(3000 / steps);
+  }
+  await sleep(2000);
+  selectFormula(squareRootFormula);
+  async function square(
+    savesPerSegment: number,
+    pointsPerSave: number = Math.floor(50 / savesPerSegment),
+    totalMs = 3000
+  ) {
+    const pointsPerSegment = savesPerSegment * pointsPerSave;
+    let source = zPath.lastSaved;
+    for (let i = 0; i < 4; i++) {
+      const destination = rotate90(source);
+      for (const [next, index] of zip(
+        makeSegment(source, destination, pointsPerSegment),
+        count()
+      )) {
+        updateZ(next);
+        await sleep(totalMs / pointsPerSegment);
+        if ((index + 1) % pointsPerSave == 0) {
+          saveAll();
+        }
+      }
+      // assert all saved?  Force a save now?
+      source = destination;
+    }
+  }
+  await square(1);
+  savedLines().forEach((line) => line.classList.add("thin"));
+  await sleep(500);
+  await square(2);
+  savedLines().forEach((line) => {
+    if (!line.classList.contains("thin")) {
+      line.classList.add("fat");
+    }
+  });
+  await sleep(500);
+  await square(30);
+  await sleep(500);
+}
+
+/**
+ * This is a collection of things that I'm exporting for debug purposes.
+ * This is subject to constant change.
+ */
+(window as any).phil = {
+  // Export the updateZ() function to the JavaScript console for debug purposes.
+  // The inputs are 2 real numbers because the Complex class has not be exported to the console.
+  updateZ(re: number, im: number) {
+    updateZ(new Complex(re, im));
+  },
+  selectFormula,
+  sixthRootFormula,
+  demo,
+};
+
 // TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
-// When they get below 10% just delete them.
+// When they get below 10% just delete them.  Update:  See "fat" and "thin" (quotes included) above for
+// a starting point.  Add buttons to allow the user to do what the demo() is already doing.
 
 // TODO add some buttons to do demos, like circles and squares.
 // For the square root, consider a simple diamond (rotated square) with only 4 points, to show off the octagon it creates.
