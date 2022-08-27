@@ -693,6 +693,21 @@ function savedLines() {
   );
 }
 
+function styleCurrentLines(newStyle : "thin" | "fat") {
+  savedLines().forEach((line) => {
+    const classList = line.classList;
+    if (!(classList.contains("thin") || classList.contains("fat"))) {
+      classList.add(newStyle);
+    }
+  });
+}
+
+(["thin", "fat"] as const).forEach(style => {
+  getById(style, HTMLButtonElement).addEventListener("click", () => {
+    styleCurrentLines(style);
+  });
+});
+
 /**
  * Run some automated demos.  Move the input and output according to a script.
  *
@@ -707,7 +722,7 @@ async function demo() {
     await sleep(3000 / steps);
     saveAll();
   }
-  savedLines().forEach((line) => line.classList.add("fat"));
+  styleCurrentLines("fat");
   await sleep(500);
   for (const z of makeCircle(Complex.ZERO, zPath.lastSaved, steps)) {
     updateZ(z);
@@ -740,14 +755,10 @@ async function demo() {
     }
   }
   await square(1);
-  savedLines().forEach((line) => line.classList.add("thin"));
+  styleCurrentLines("thin");
   await sleep(500);
   await square(2);
-  savedLines().forEach((line) => {
-    if (!line.classList.contains("thin")) {
-      line.classList.add("fat");
-    }
-  });
+  styleCurrentLines("fat");
   await sleep(500);
   await square(30);
   await sleep(500);
