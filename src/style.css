@@ -8,6 +8,11 @@
 .branch-point {
   fill: saddlebrown;
 }
+.cut-ray {
+  stroke: saddlebrown;
+  stroke-dasharray: 0.5 0.15 0.01 0.15;
+  stroke-width: 0.09;
+}
 svg {
   border-style: solid;
   border-width: 0.25em;

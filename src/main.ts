@@ -96,6 +96,15 @@ type Formula = {
    */
   readonly branchPoints: readonly Complex[];
   readonly initialZ: Complex;
+  /**
+   * If this is true we can draw a ray showing where we would have to cut the plane to attach a different plane.
+   * If you move the preview points across the ray, it will cause some output values to swap.
+   * Each time you save, the ray moves to try to stay out of the way.
+   *
+   * This uses a very simple formula.  If that formula doesn't work, set this to false.
+   * (Or add some smarter code!)
+   */
+  readonly showSimpleCut: boolean;
 };
 
 const squareRootFormula: Formula = {
@@ -110,6 +119,7 @@ const squareRootFormula: Formula = {
   },
   branchPoints: [Complex.ZERO],
   initialZ: new Complex(4),
+  showSimpleCut: true,
 };
 const naturalLogFormula: Formula = {
   shortName: "Natural Log",
@@ -139,6 +149,7 @@ const naturalLogFormula: Formula = {
   },
   branchPoints: [Complex.ZERO],
   initialZ: Complex.E,
+  showSimpleCut: true,
 };
 const originalPolynomialFormula: Formula = {
   shortName: "𝒘³-𝒛𝒘-2 = 0",
@@ -195,6 +206,7 @@ const originalPolynomialFormula: Formula = {
   error(w, z) {
     return w.pow(3).sub(z.mul(w)).sub(2).abs();
   },
+  showSimpleCut: false,
 };
 
 /**
@@ -408,6 +420,9 @@ class PathInfo {
     if (this.#currentValue.equals(this.#undo)) {
       return;
     }
+    if (this.#lastSegment) {
+      this.#lastSegment.classList.add("can-be-styled");
+    }
     this.newLine();
   }
 }
@@ -427,6 +442,49 @@ let zPath!: PathInfo;
  */
 let wPaths!: PathInfo[];
 
+let cutRay: SVGLineElement | undefined;
+const showCutCheckBox = getById("showCut", HTMLInputElement);
+
+function updateCutVisibility() {
+  if (cutRay) {
+    cutRay.style.display = showCutCheckBox.checked ? "" : "none";
+  }
+}
+
+showCutCheckBox.addEventListener("click", () => {
+  updateCutVisibility();
+});
+
+/**
+ * This updates the segment showing where you don't want to move your input.
+ * If you cross this line in preview mode, the outputs will jump.
+ *
+ * This is just a display.  The formula does what it does without calling this.
+ */
+function updateCutPosition() {
+  if (cutRay) {
+    /**
+     * We want the line segment to go off the SVG element.
+     * The longest line segment would be a diagonal from one corner to an opposite corner.
+     */
+    const length = 15 * Math.SQRT2;
+    /**
+     * This simple algorithm assumes we have exactly one branch point.
+     */
+    const start = formula.branchPoints[0];
+    /**
+     * The direction from the current z the branch point is the same as
+     * the direction from the branch point off to infinity.
+     * I.e. we're pointing the segment as far from z as possible.
+     */
+    const direction = start.sub(zPath.lastSaved).arg();
+    // TODO what if start = zPath.lastSaved?
+    const end = new Complex({ r: length, phi: direction });
+    cutRay.x2.baseVal.value = end.re;
+    cutRay.y2.baseVal.value = -end.im;
+  }
+}
+
 /**
  * Select a formula and clear the screen.
  * This function will reset everything even if the "new" formula is the same as the existing one.
@@ -438,6 +496,7 @@ function init(newFormula?: Formula) {
   bottomGroup.innerHTML = "";
   mainGroup.innerHTML = "";
   topGroup.innerHTML = "";
+  cutRay = undefined;
   positionInfoDiv.innerHTML = "";
   // Try to make the formula drop down match the formula variable.
   if (newFormula) {
@@ -459,6 +518,19 @@ function init(newFormula?: Formula) {
     const color = `hsl(${index / wValues.length}turn, 100%, 50%)`;
     return new PathInfo(color, w);
   });
+  if (formula.showSimpleCut) {
+    showCutCheckBox.disabled = false;
+    cutRay = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    cutRay.classList.add("cut-ray");
+    const start = formula.branchPoints[0];
+    cutRay.x1.baseVal.value = start.re;
+    cutRay.y1.baseVal.value = -start.im;
+    updateCutPosition();
+    updateCutVisibility();
+    topGroup.appendChild(cutRay);
+  } else {
+    showCutCheckBox.disabled = true;
+  }
   checkForError();
   for (const branchPoint of formula.branchPoints) {
     //        <circle class="branch-point" cx="0" cy="0" r="0.1"></circle>
@@ -541,6 +613,7 @@ function cursorToComplex(evt: MouseEvent) {
  */
 function saveAll() {
   zPath.save();
+  updateCutPosition();
   wPaths.forEach((path) => path.save());
 }
 
@@ -624,6 +697,7 @@ const sixthRootFormula: Formula = {
   },
   branchPoints: [Complex.ZERO],
   initialZ: new Complex(6),
+  showSimpleCut: true,
 };
 
 /**
@@ -678,31 +752,15 @@ function rotate90(from: Complex) {
   return new Complex({ re: -from.im, im: from.re });
 }
 
-/**
- *
- * @returns A set containing all of the preview lines.  I.e. the dotted lines.
- *
- * There is always a preview line for every input and output.
- * Sometimes you don't see it because the beginning and end are at the same point,
- * but it is still there.
- */
-function savedLines() {
-  const notSaved = new Set([zPath, ...wPaths].map((path) => path.lastSegment));
-  return Array.from(svg.querySelectorAll("line")).filter(
-    (line) => !notSaved.has(line)
-  );
-}
-
-function styleCurrentLines(newStyle : "thin" | "fat") {
-  savedLines().forEach((line) => {
+function styleCurrentLines(newStyle: "thin" | "fat") {
+  Array.from(svg.querySelectorAll(".can-be-styled")).forEach((line) => {
     const classList = line.classList;
-    if (!(classList.contains("thin") || classList.contains("fat"))) {
-      classList.add(newStyle);
-    }
+    classList.remove("can-be-styled");
+    classList.add(newStyle);
   });
 }
 
-(["thin", "fat"] as const).forEach(style => {
+(["thin", "fat"] as const).forEach((style) => {
   getById(style, HTMLButtonElement).addEventListener("click", () => {
     styleCurrentLines(style);
   });
@@ -714,6 +772,7 @@ function styleCurrentLines(newStyle : "thin" | "fat") {
  * This is a work in progress.
  */
 async function demo() {
+  showCutCheckBox.checked = false;
   selectFormula(squareRootFormula);
   await sleep(100);
   const steps = 30;
@@ -762,6 +821,29 @@ async function demo() {
   await sleep(500);
   await square(30);
   await sleep(500);
+
+  // What happens if you don't save your previous points?
+  // This is a simpler and more traditional way of answering these questions.
+  // We cut the plane and say that everything is nice as long as you never cross that cut.
+  showCutCheckBox.checked = true;
+  selectFormula(squareRootFormula);
+  for (const current of makeSegment(zPath.lastSaved, new Complex(-4, 1), 50)) {
+    updateZ(current);
+    await sleep(3000 / 50);
+  }
+  const startTime = performance.now();
+  let done = false;
+  function wiggle(time: number) {
+    if (!done) {
+      const timePast = time - startTime;
+      const phase = (timePast / 3000) * 2 * Math.PI;
+      const newPosition = new Complex({ re: -4, im: Math.cos(phase) });
+      updateZ(newPosition);
+      requestAnimationFrame(wiggle);
+    }
+  }
+  requestAnimationFrame(wiggle);
+  //await segment();
 }
 
 /**
@@ -778,10 +860,6 @@ async function demo() {
   sixthRootFormula,
   demo,
 };
-
-// TODO Add a "Hide older" button.  Go through all of the lines and make each of them 50% more transparent.
-// When they get below 10% just delete them.  Update:  See "fat" and "thin" (quotes included) above for
-// a starting point.  Add buttons to allow the user to do what the demo() is already doing.
 
 // TODO add some buttons to do demos, like circles and squares.
 // For the square root, consider a simple diamond (rotated square) with only 4 points, to show off the octagon it creates.
