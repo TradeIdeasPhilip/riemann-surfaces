@@ -78,6 +78,75 @@ This is just an artifact of how someone chose to draw this surface.
 You could slide that intersection somewhere else and the picture would mean the same thing.
 The advantage of my program over a picture like this one is that my program shows the total symmetry of the problem.
 
+## Branch Points
+
+Take another look at the picture above.
+
+The point in the center where everything comes together is the origin, 0+0𝓲.
+On my program this is marked with a brown point.
+
+This point is special because if the input goes here, both of the outputs will have the same value.
+This is called a "branch point."
+
+A branch point causes a problem in calculus.
+Normally when I'm calculating the next output point I can clearly choose which point will make the path smooth and continuous.
+At the branch point the process would be ambiguous, so the answer is no longer well defined.
+In calculus terminology you'd say the square root of 𝒛 "analytic" everywhere _except_ for this point.
+In layman's terms, that's a bad point that we want to avoid.
+
+For the square root of 𝒛 (labeled `𝒛=𝒘²` in my code) the input and the outputs all go to 0 at the same time.
+That is not always the case.
+A branch point always refers to position of the input, not the output.
+
+Look at `𝒘³-𝒛·𝒘-2=0` for a more interesting example.
+There are three different branch points.
+Each time the input goes near one, two of the outputs get very close to each other.
+If you could click exactly at the branch point, the two outputs would overlap.
+
+The natural log of 𝒛 (labeled `𝒛=𝒆ʷ`) is even more interesting.
+As with the square root, there is one branch point and it is at 0.
+But there are infinitely many answers.
+As the input approaches 0, the outputs will all approach infinity.
+And they will each approach infinity from a different direction!
+
+Note that the branch points depend on the equation.
+We have no choice in where to place them.
+
+## Branch Cuts
+
+Take another look at the picture.
+The "0" next to the red edge is 1+0𝓲.
+The line connecting that to the branch point is the real axis, a.k.a. the real number line.
+
+Notice where the surface intersects itself.
+This corresponds to the dashed brown line in my program.
+
+Ideally you completely ignore this self intersection.
+From a practical standpoint, you just try to move it out of the way.
+Unlike the branch points, you get some leeway in the position _and shape_ of this intersection.
+
+What if you only looked at the surface from above and ignored anything that wasn't visible?
+You'd see a single complex plane.
+If you avoid the branch point and the ray where the surface intersects itself, you could do normal math there.
+You could pick either of the two outputs and it would be a normal function, as long as you stayed away from the self intersections.
+In calculus terminology, the function would be analytic in the entire complex plane except at the branch point and along the branch cut.
+
+When I say "normal" or "analytic" I mean you could could make a function that
+
+- takes in a single complex input and returns a single complex output,
+- is defined everywhere I just described, and
+- gives two outputs that are arbitrarily close together if the two inputs are sufficiently close together.
+
+My software will automatically move the branch cut out of your way each time you click to save a point in the path.
+Use the check box to show the cut.
+Move the mouse around the branch cut without clicking to see what happens when you don't move the branch cut.
+In this case you can move the input a small amount and the output will jump a lot.
+
+For some formulas I have disabled the branch cut.
+The function still give the right answers.
+And as long as you make small moves between each click and don't get too close to the branch point, everything will work fine.
+It was just too complicated for me to show more.
+
 ## History
 
 I recreated something I did in school.
