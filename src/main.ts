@@ -305,6 +305,51 @@ function formatComplex(complex: Complex) {
 }
 
 /**
+ * While a demo is running, most of the GUI should be deactivated.
+ * It would be confusing if the user and the demo were moving inputs at the same time,
+ * or if two demos were trying to run at the same time.
+ */
+class DisableUserInterface {
+  static readonly #shouldDisable = Array.from(
+    document.querySelectorAll("button, select")
+  ) as (HTMLButtonElement | HTMLSelectElement)[];
+  /**
+   * Only enable the things that we previously disabled.
+   * 
+   * Undefined means that we are already in the enabled state.
+   */
+  static #shouldEnable: { disabled: boolean }[] | undefined;
+  static now() {
+    if (this.#shouldEnable) {
+      throw new Error("Already disabled.");
+    }
+    const shouldEnable: { disabled: boolean }[] = [];
+    this.#shouldDisable.forEach((element) => {
+      if (!element.disabled) {
+        element.disabled = true;
+        shouldEnable.push(element);
+      }
+    });
+    this.#shouldEnable = shouldEnable;
+    updateCutCheckBoxEnabled();
+  }
+  static restore() {
+    if (!this.#shouldEnable) {
+      throw new Error("Already disabled.");
+    }
+    this.#shouldEnable.forEach((element) => (element.disabled = false));
+    this.#shouldEnable = undefined;
+    updateCutCheckBoxEnabled();
+  }
+  static isEnabled() {
+    return this.#shouldEnable == undefined;
+  }
+  static isDisabled() {
+    return this.#shouldEnable != undefined;
+  }
+}
+
+/**
  * This describes the path of the 𝒛 or one of the 𝒘's.
  *
  * This contains pointers to the relevant GUI items and to the relevant numerical values.
@@ -450,9 +495,26 @@ let zPath!: PathInfo;
  */
 let wPaths!: PathInfo[];
 
+/**
+ * This is the dashed line that shows the branch cut.
+ * This is undefined if we don't know how to draw the line or no such line is appropriate.
+ * This can also be temporarily hidden with the check box, but in that case the `SVGLineElement` will still be stored in this variable.
+ */
 let cutRay: SVGLineElement | undefined;
 const showCutCheckBox = getById("showCut", HTMLInputElement);
 
+/**
+ * This can be disabled for multiple reasons.  And the the reasons
+ * can change at different times.
+ */
+function updateCutCheckBoxEnabled() {
+  showCutCheckBox.disabled =
+    DisableUserInterface.isDisabled() || !formula.showSimpleCut;
+}
+
+/**
+ * The user or the demo program can hide this line via the check box.
+ */
 function updateCutVisibility() {
   if (cutRay) {
     cutRay.style.display = showCutCheckBox.checked ? "" : "none";
@@ -527,7 +589,6 @@ function init(newFormula?: Formula) {
     return new PathInfo(color, w);
   });
   if (formula.showSimpleCut) {
-    showCutCheckBox.disabled = false;
     cutRay = document.createElementNS("http://www.w3.org/2000/svg", "line");
     cutRay.classList.add("cut-ray");
     const start = formula.branchPoints[0];
@@ -536,9 +597,8 @@ function init(newFormula?: Formula) {
     updateCutPosition();
     updateCutVisibility();
     topGroup.appendChild(cutRay);
-  } else {
-    showCutCheckBox.disabled = true;
   }
+  updateCutCheckBoxEnabled();
   checkForError();
   for (const branchPoint of formula.branchPoints) {
     //        <circle class="branch-point" cx="0" cy="0" r="0.1"></circle>
@@ -626,6 +686,9 @@ function saveAll() {
 }
 
 svg.addEventListener("mouseleave", () => {
+  if (DisableUserInterface.isDisabled()) {
+    return;
+  }
   // When the mouse is inside of the SVG, we will display a dotted line leading to the point under the mouse.
   // This is a preview of what you would get if you clicked to save the current point to the path.
   // When the mouse leaves the SVG, the following code will hide that preview.
@@ -633,6 +696,9 @@ svg.addEventListener("mouseleave", () => {
   wPaths.forEach((path) => path.undo());
 });
 svg.addEventListener("mousemove", (event) => {
+  if (DisableUserInterface.isDisabled()) {
+    return;
+  }
   // If the mouse button is up, Update the preview.
   updateZ(cursorToComplex(event));
   if (event.buttons & 1) {
@@ -641,6 +707,9 @@ svg.addEventListener("mousemove", (event) => {
   }
 });
 svg.addEventListener("mouseup", (_event) => {
+  if (DisableUserInterface.isDisabled()) {
+    return;
+  }
   // When the user clicks and releases the mouse button, save the current position.
   saveAll();
 });
@@ -968,27 +1037,10 @@ async function demo() {
   //await segment();
 }
 
-/**
- * While a demo is running, most of the GUI should be deactivated.
- * It would be confusing if the user and the demo were moving inputs at the same time,
- * or if two demos were trying to run at the same time.
- */
-function disableUserInterface() {
-  // TODO
-}
-
-/**
- * This undoes the effects of disableUserInterface().
- * This restores the default state, like when the program first runs, before any demos start.
- */
-function enableUserInterface() {
-  // TODO
-}
-
 getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
   "click",
   async () => {
-    disableUserInterface();
+    DisableUserInterface.now();
     showCutCheckBox.checked = false;
     selectFormula(squareRootFormula);
     await runTimer(5000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 20));
@@ -996,7 +1048,7 @@ getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
     await sleep(500);
     await runTimer(5000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 20));
     // TODO show next steps
-    enableUserInterface();
+    DisableUserInterface.restore();
   }
 );
 
@@ -1013,8 +1065,7 @@ getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
   selectFormula,
   sixthRootFormula,
   demo,
-  enableUserInterface,
-  disableUserInterface,
+  DisableUserInterface,
 };
 
 // TODO add some buttons to do demos, like circles and squares.
