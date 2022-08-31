@@ -26,6 +26,8 @@ Currently there is no preview or drag option unless you use a mouse.)
 
 Use the dropdown list to pick a function to graph.
 
+The "Demo" section is a work in progress!
+
 ### Square Root
 
 𝒛=𝒘².

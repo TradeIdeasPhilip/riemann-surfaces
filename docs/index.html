@@ -5,31 +5,71 @@
     <link rel="icon" type="image/svg+xml" href="./Riemann_surface_sqrt.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Riemann Surfaces and Multi-Valued Functions</title>
-    <script type="module" crossorigin src="./assets/main.2ea4c190.js"></script>
-    <link rel="stylesheet" href="./assets/index.337bd08b.css">
+    <script type="module" crossorigin src="./assets/main.9473e954.js"></script>
+    <link rel="stylesheet" href="./assets/index.f4169430.css">
   </head>
   <body>
-    <svg viewBox="-7.5 -7.5 15 15">
-      <g id="bottom"></g>
-      <g id="main"></g>
-      <g id="top"></g>
-    </svg>
-    <div id="positionInfo"></div>
-    <div>
-      <select id="formula"></select>
-      <button id="reset">Reset</button>
-      <button id="thin">Make current lines thin</button>
-      <button id="fat">Make current lines fat</button>
-      <input type="checkbox" id="showCut" /><label for="showCut"
-        >Show Cut</label
-      >
+    <div id="mainPanel">
+      <svg viewBox="-7.5 -7.5 15 15">
+        <g id="bottom"></g>
+        <g id="main"></g>
+        <g id="top"></g>
+      </svg>
+      <div id="positionInfo"></div>
+      <div>
+        <select id="formula"></select>
+        <button id="reset">Reset</button>
+        <button id="thin">Make lines thin</button>
+        <button id="fat">Make lines fat</button>
+        <input type="checkbox" id="showCut" /><label for="showCut"
+          >Show Cut</label
+        >
+      </div>
+      <p>
+        <a href="https://github.com/TradeIdeasPhilip/riemann-surfaces#readme"
+          >Help!</a
+        >
+      </p>
+      <div id="errorInfo"></div>
     </div>
-    <p>
-      <a href="https://github.com/TradeIdeasPhilip/riemann-surfaces#readme"
-        >Help!</a
-      >
-    </p>
-    <div id="errorInfo"></div>
+    <div id="demoPanel">
+      <h1>Demo</h1>
+      <h2>Circles and Roots</h2>
+      <p>
+        If 𝒛 rotates around the origin, √𝒛 will move in the same direction but
+        half as far. That explains why there are two values for √𝒛.
+      </p>
+      <button id="showMeCirclesAndRoots">Show me</button>
+      <p>
+        Half way through the demo, this program swapped the colors of the two outputs, because of the path.
+        However, any input will always produce the same two output values, regardless of the path.
+      </p>
+      <h2>Squares and Straight Lines</h2>
+      <p>Lets draw four points to make a square.</p>
+      <button disabled>Show me</button>
+      <p>
+        The output made an octagon. But this is just a rough estimate. Let's try
+        again with twice as many points.
+      </p>
+      <button disabled>Show me</button>
+      <p>
+        Notice how the lines bow inwards and the angles have gotten smaller.
+        Let's try again with a lot more points.
+      </p>
+      <button disabled>Show me</button>
+      <p>
+        Since the input made right angles, the outputs should also make right
+        angles. In calculus terminology, this function is a "conformal" or angle
+        preserving mapping.
+      </p>
+      <h2>Branch Cuts</h2>
+      <p>
+        What if we didn't save the path? What if we only knew the current input?
+        One way to deal with this is to make a cut in the complex plane. We can
+        see if this if we move the input without saving any previous values.
+      </p>
+      <button disabled>Show me</button>
+    </div>
     
   </body>
 </html>

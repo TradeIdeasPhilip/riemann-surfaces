@@ -1,7 +1,15 @@
 import "./style.css";
 import { Complex } from "complex.js";
 import { getById } from "phil-lib/client-misc";
-import { count, initializedArray, sleep, sum, zip } from "phil-lib/misc";
+import {
+  count,
+  initializedArray,
+  makeLinear,
+  makePromise,
+  sleep,
+  sum,
+  zip,
+} from "phil-lib/misc";
 
 // TODO shouldn't this move to phil-lib/client-misc.ts.
 /**
@@ -713,6 +721,9 @@ const sixthRootFormula: Formula = {
  * @returns A list of points.
  * The last point will be the same as the `start` point.
  * The first point will be one step away from the `start` point.
+ * @deprecated See the `MakeCircle` class.
+ * That class can do smooth animations.
+ * This function always spits out a fixed number of points.
  */
 function makeCircle(center: Complex, start: Complex, steps: number) {
   const initialOffset = start.sub(center);
@@ -725,6 +736,115 @@ function makeCircle(center: Complex, start: Complex, steps: number) {
   });
   result.push(start);
   return result;
+}
+
+/**
+ * A number between 0 and 1.
+ * 0 means just started.
+ * 1 means done.
+ */
+type Progress = number;
+
+/**
+ * This will draw a circle.
+ *
+ * This will affect the preview and the saved points.
+ * This will animate the preview smoothly, if `updateNow()` is called frequently enough.
+ * This will always put the saved points in exactly the request places, even if the calls come at an uneven pace.
+ */
+class MakeCircle {
+  /**
+   * this.center + this.#initialOffset = the first and last point of the circle.
+   */
+  #initialOffset: Complex;
+  /**
+   * How many times have we saved a point so far?
+   *
+   * We don't want to skip any points, even if the animation timer temporarily stops firing.
+   */
+  #stepsSaved = 0;
+
+  /**
+   *
+   * @param center The center of the circle.
+   * @param start The point where the circle starts and stops.
+   * This point should already be saved before the the circle starts.
+   * @param steps The number of times to save the current point to the path.
+   * These steps will be evenly spread around the circle.
+   * This will include the final point, but not the starting point.
+   */
+  constructor(
+    private readonly center: Complex,
+    start: Complex,
+    private readonly steps: number
+  ) {
+    this.#initialOffset = start.sub(center);
+  }
+
+  /**
+   * @param progress How far along the animation should be.
+   * @returns The current position of the input.
+   */
+  private getPosition(progress: Progress) {
+    if (progress == 1) {
+      // Avoid round-off error.  The graph will look the same either way.
+      // But I print the number differently if it is an exact integer.
+      progress = 0;
+    }
+    return this.#initialOffset
+      .mul({ r: 1, phi: progress * 2 * Math.PI })
+      .add(this.center);
+  }
+
+  /**
+   * Update the screen.
+   * @param progress How far along we should be.
+   * This animation only makes sense of the progress never goes backwards.
+   */
+  public updateNow(progress: Progress) {
+    const shouldBeSaved = (this.steps * progress) | 0;
+    while (this.#stepsSaved < shouldBeSaved) {
+      this.#stepsSaved++;
+      updateZ(this.getPosition(this.#stepsSaved / this.steps));
+      saveAll();
+    }
+    updateZ(this.getPosition(progress));
+  }
+}
+
+/**
+ * This will perform a series of calls to update the screen, all managed by the animation timer.
+ *
+ * The individual animations are defined by another object.
+ * This function takes care of talking to the animation timer and other boilerplate items used by all animations.
+ * @param ms How long, in milliseconds, the animation should take.
+ * @param action The object that will do the actual work of updating the screen.
+ * @returns A promise that will resolve when the animation is complete.
+ * @throws If the `action` throws something, the promise will reject with the same reason.
+ */
+function runTimer(ms: number, action: { updateNow(progress: Progress): void }) {
+  const promise = makePromise();
+  const startTime = performance.now();
+  const endTime = startTime + ms;
+  const timeToProgress = makeLinear(startTime, 0, endTime, 1);
+  let lastReportedTime = startTime;
+  function animationCallback(time: number) {
+    try {
+      if (time >= endTime) {
+        action.updateNow(1);
+        promise.resolve();
+      } else {
+        if (time > lastReportedTime) {
+          action.updateNow(timeToProgress(time));
+        }
+        requestAnimationFrame(animationCallback);
+      }
+    } catch (reason) {
+      promise.reject(reason);
+    }
+  }
+  requestAnimationFrame(animationCallback);
+  return promise.promise;
 }
 
 /**
@@ -769,7 +889,9 @@ function styleCurrentLines(newStyle: "thin" | "fat") {
 /**
  * Run some automated demos.  Move the input and output according to a script.
  *
- * This is a work in progress.
+ * This was a first draft.
+ * It was aimed at me as a programmer.
+ * See `getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener("click"` and similar for the final version.
  */
 async function demo() {
   showCutCheckBox.checked = false;
@@ -847,6 +969,38 @@ async function demo() {
 }
 
 /**
+ * While a demo is running, most of the GUI should be deactivated.
+ * It would be confusing if the user and the demo were moving inputs at the same time,
+ * or if two demos were trying to run at the same time.
+ */
+function disableUserInterface() {
+  // TODO
+}
+
+/**
+ * This undoes the effects of disableUserInterface().
+ * This restores the default state, like when the program first runs, before any demos start.
+ */
+function enableUserInterface() {
+  // TODO
+}
+
+getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    disableUserInterface();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    await runTimer(5000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 20));
+    styleCurrentLines("fat");
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 20));
+    // TODO show next steps
+    enableUserInterface();
+  }
+);
+
+/**
  * This is a collection of things that I'm exporting for debug purposes.
  * This is subject to constant change.
  */
@@ -859,6 +1013,8 @@ async function demo() {
   selectFormula,
   sixthRootFormula,
   demo,
+  enableUserInterface,
+  disableUserInterface,
 };
 
 // TODO add some buttons to do demos, like circles and squares.
