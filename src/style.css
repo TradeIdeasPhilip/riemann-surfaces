@@ -49,9 +49,15 @@ line.active {
   justify-content: space-evenly;
 }
 body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   column-gap: 1em;
+  max-height: 100vh;
+  overflow: hidden;
+}
+#demoPanel,
+#mainPanel {
+  overflow-y: auto;
+  width: 50%;
 }
 h1:first-child {
   margin-block-start: 0;

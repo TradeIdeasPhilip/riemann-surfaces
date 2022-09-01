@@ -93,10 +93,10 @@ This is called a "branch point."
 A branch point causes a problem in calculus.
 Normally when I'm calculating the next output point I can clearly choose which point will make the path smooth and continuous.
 At the branch point the process would be ambiguous, so the answer is no longer well defined.
-In calculus terminology you'd say the square root of 𝒛 "analytic" everywhere _except_ for this point.
+In calculus terminology you'd say the square root of 𝒛 is "analytic" everywhere _except_ for this point.
 In layman's terms, that's a bad point that we want to avoid.
 
-For the square root of 𝒛 (labeled `𝒛=𝒘²` in my code) the input and the outputs all go to 0 at the same time.
+For the square root of 𝒛 (labeled `𝒛=𝒘²` in my code) the input _and_ the outputs all go to 0 at the same time.
 That is not always the case.
 A branch point always refers to position of the input, not the output.
 
