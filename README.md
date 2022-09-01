@@ -133,7 +133,7 @@ If you avoid the branch point and the ray where the surface intersects itself, y
 You could pick either of the two outputs and it would be a normal function, as long as you stayed away from the self intersections.
 In calculus terminology, the function would be analytic in the entire complex plane except at the branch point and along the branch cut.
 
-When I say "normal" or "analytic" I mean you could could make a function that
+When I say "normal" or "[analytic](https://en.wikipedia.org/wiki/Analytic_function)" I mean you could could make a function that
 
 - takes in a single complex input and returns a single complex output,
 - is defined everywhere I just described, and

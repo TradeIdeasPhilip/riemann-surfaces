@@ -39,26 +39,9 @@
       </p>
       <button id="showMeCirclesAndRoots">Show me</button>
       <p>
-        Half way through the demo, this program swapped the colors of the two outputs, because of the path.
-        However, any input will always produce the same two output values, regardless of the path.
-      </p>
-      <h2>Squares and Straight Lines</h2>
-      <p>Lets draw four points to make a square.</p>
-      <button disabled>Show me</button>
-      <p>
-        The output made an octagon. But this is just a rough estimate. Let's try
-        again with twice as many points.
-      </p>
-      <button disabled>Show me</button>
-      <p>
-        Notice how the lines bow inwards and the angles have gotten smaller.
-        Let's try again with a lot more points.
-      </p>
-      <button disabled>Show me</button>
-      <p>
-        Since the input made right angles, the outputs should also make right
-        angles. In calculus terminology, this function is a "conformal" or angle
-        preserving mapping.
+        Half way through the demo, this program swapped the colors of the two
+        outputs, because of the path. However, any input will always produce the
+        same two output values, regardless of the path.
       </p>
       <h2>Branch Cuts</h2>
       <p>
@@ -66,7 +49,30 @@
         One way to deal with this is to make a cut in the complex plane. We can
         see if this if we move the input without saving any previous values.
       </p>
-      <button disabled>Show me</button>
+      <button id="showMeBranchCuts1">Show me</button>
+      <p>
+        As soon as the user saves a point, we automatically move the branch cut
+        as far from that point as possible.
+      </p>
+      <button id="showMeBranchCuts2">Show me</button>
+      <h2>Squares and Straight Lines</h2>
+      <p>Lets draw four points to make a square.</p>
+      <button id="showMeSquare1">Show me</button>
+      <p>
+        The output made an octagon. But this is just a rough estimate. Let's try
+        again with twice as many points.
+      </p>
+      <button id="showMeSquare2">Show me</button>
+      <p>
+        Notice how the lines bow inwards and the angles have gotten smaller.
+        Let's try again with a lot more points.
+      </p>
+      <button id="showMeSquare3">Show me</button>
+      <p>
+        Since the input made right angles, the outputs should also make right
+        angles. In calculus terminology, this function is a "conformal" or angle
+        preserving mapping.
+      </p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

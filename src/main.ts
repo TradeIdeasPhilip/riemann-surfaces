@@ -315,7 +315,7 @@ class DisableUserInterface {
   ) as (HTMLButtonElement | HTMLSelectElement)[];
   /**
    * Only enable the things that we previously disabled.
-   * 
+   *
    * Undefined means that we are already in the enabled state.
    */
   static #shouldEnable: { disabled: boolean }[] | undefined;
@@ -814,6 +814,8 @@ function makeCircle(center: Complex, start: Complex, steps: number) {
  */
 type Progress = number;
 
+type Action = { updateNow(progress: Progress): void };
+
 /**
  * This will draw a circle.
  *
@@ -821,7 +823,7 @@ type Progress = number;
  * This will animate the preview smoothly, if `updateNow()` is called frequently enough.
  * This will always put the saved points in exactly the request places, even if the calls come at an uneven pace.
  */
-class MakeCircle {
+class MakeCircle implements Action {
   /**
    * this.center + this.#initialOffset = the first and last point of the circle.
    */
@@ -891,7 +893,7 @@ class MakeCircle {
  * @returns A promise that will resolve when the animation is complete.
  * @throws If the `action` throws something, the promise will reject with the same reason.
  */
-function runTimer(ms: number, action: { updateNow(progress: Progress): void }) {
+function runTimer(ms: number, action: Action) {
   const promise = makePromise();
   const startTime = performance.now();
   const endTime = startTime + ms;
@@ -924,12 +926,68 @@ function runTimer(ms: number, action: { updateNow(progress: Progress): void }) {
  * @param to Where to end.  The last point in the list will be exactly this.
  * @param steps How many points do you want?  Should be an integer greater than 0.
  * @returns A list of evenly spaced points between `from` and `to`, including `to` as the last value.
+ * @deprecated See the `MakeSegment` class.
+ * That class can do smooth animations.
+ * This function always spits out a fixed number of points.
  */
 function makeSegment(from: Complex, to: Complex, steps: number) {
   const totalDistance = to.sub(from);
   return initializedArray(steps, (step) =>
     to.sub(totalDistance.mul((steps - step - 1) / steps))
   );
+}
+
+class MakeSegment implements Action {
+  /**
+   * How many times have we saved a point so far?
+   *
+   * We don't want to skip any points, even if the animation timer temporarily stops firing.
+   */
+  #stepsSaved = 0;
+
+  readonly #totalDistance: Complex;
+
+  constructor(
+    from: Complex,
+    private readonly to: Complex,
+    private readonly steps: number
+  ) {
+    this.#totalDistance = to.sub(from);
+  }
+
+  /**
+   * @param progress How far along the animation should be.
+   * @returns The current position of the input.
+   */
+  private getPosition(progress: Progress) {
+    return this.to.sub(this.#totalDistance.mul(1 - progress));
+  }
+
+  updateNow(progress: number): void {
+    if (this.steps) {
+      // TODO this was copied directly from MakeCircle.updateNow().
+      // Should these classes share a base class?
+      const shouldBeSaved = (this.steps * progress) | 0;
+      while (this.#stepsSaved < shouldBeSaved) {
+        this.#stepsSaved++;
+        updateZ(this.getPosition(this.#stepsSaved / this.steps));
+        saveAll();
+      }
+    }
+    // else steps = 0, so we don't save anything.
+    // I made this a special case to avoid ÷0.
+    updateZ(this.getPosition(progress));
+  }
+
+  static makeDiamond(stepsPerSide: number, start = zPath.lastSaved) {
+    const result: MakeSegment[] = [];
+    for (let i = 0; i < 4; i++) {
+      const end = rotate90(start);
+      result.push(new this(start, end, stepsPerSide));
+      start = end;
+    }
+    return result;
+  }
 }
 
 /**
@@ -1052,6 +1110,118 @@ getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
   }
 );
 
+getById("showMeBranchCuts1", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = true;
+    selectFormula(squareRootFormula);
+    let source = zPath.currentValue;
+    const script: [number, Complex][] = [
+      [500, new Complex(1, 1)],
+      [750, new Complex(1, -1)],
+      [750, new Complex(1, 1)],
+      [750, new Complex(1, -1)],
+      [750, new Complex(1, 1)],
+      [500, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+      [750, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+      [750, new Complex(-2, 2)],
+      [500, new Complex(1, 1)],
+      [500, new Complex(1, -1)],
+      [500, new Complex(-2, -2)],
+      [750, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+      [750, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+    ];
+    for (const [ms, destination] of script) {
+      await runTimer(ms, new MakeSegment(source, destination, 0));
+      source = destination;
+    }
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeBranchCuts2", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = true;
+    selectFormula(squareRootFormula);
+    let source = new Complex(-2, -2);
+    updateZ(source);
+    saveAll();
+    const script: [number, Complex][] = [
+      [750, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+      [750, new Complex(-2, 2)],
+      [750, new Complex(-2, -2)],
+    ];
+    for (const [ms, destination] of script) {
+      await runTimer(ms, new MakeSegment(source, destination, 5));
+      source = destination;
+    }
+    styleCurrentLines("thin");
+    await runTimer(5000, new MakeCircle(Complex.ZERO, source, 7));
+    styleCurrentLines("fat");
+    await runTimer(5000, new MakeCircle(Complex.ZERO, source, 35));
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeSquare1", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    for (const segment of MakeSegment.makeDiamond(1)) {
+      await runTimer(1500, segment);
+    }
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeSquare2", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    for (const segment of MakeSegment.makeDiamond(1)) {
+      segment.updateNow(1);
+    }
+    styleCurrentLines("thin");
+    for (const segment of MakeSegment.makeDiamond(2)) {
+      await runTimer(1500, segment);
+    }
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeSquare3", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    for (const segment of MakeSegment.makeDiamond(1)) {
+      segment.updateNow(1);
+    }
+    styleCurrentLines("thin");
+    for (const segment of MakeSegment.makeDiamond(2)) {
+      segment.updateNow(1);
+    }
+    styleCurrentLines("fat");
+    for (const segment of MakeSegment.makeDiamond(30)) {
+      await runTimer(1500, segment);
+    }
+    DisableUserInterface.restore();
+  }
+);
+
 /**
  * This is a collection of things that I'm exporting for debug purposes.
  * This is subject to constant change.
@@ -1068,16 +1238,15 @@ getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
   DisableUserInterface,
 };
 
-// TODO add some buttons to do demos, like circles and squares.
-// For the square root, consider a simple diamond (rotated square) with only 4 points, to show off the octagon it creates.
-// Then a version with one point in the middle of each segment, so you can see the sides of the octagon bow in slightly.
-// Then a version two a few more points to make up each segment.
-// Then clear it and do a diamond with a whole lot of points, especially right near the corners.
-// If I remember correctly, the angles should be 90 degrees.
-// Maybe repeat that last detailed step with other shapes, like a triangle.
-// If I remember correctly, the input and the output should have identical angles.
+// TODO add more demo buttons.
+// Repeat the conformal angle step with other shapes, like a triangle.
 // For the log, make a perfect circle or three around the origin.
 // Then move to a bigger radius.
 // Then perfect circles in the opposite direction.
+// And move really close to the branch point.
 
 // TODO Add a button to save the SVG image.
+
+// TODO The numbers still jump around too much.
+// Maybe instead of writing "4" I should write "4&nbsp;&nbsp;&nbsp;&nbsp;",
+// to line up with "3.999"
