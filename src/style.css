@@ -50,14 +50,16 @@ line.active {
 }
 body {
   display: flex;
-  column-gap: 1em;
   max-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 #demoPanel,
 #mainPanel {
   overflow-y: auto;
   width: 50%;
+  margin: 0.5em;
 }
 h1:first-child {
   margin-block-start: 0;
