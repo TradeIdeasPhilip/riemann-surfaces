@@ -1207,6 +1207,100 @@ getById("showMeLog2", HTMLButtonElement).addEventListener("click", async () => {
   DisableUserInterface.restore();
 });
 
+getById("showMeMultiple1", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(originalPolynomialFormula);
+    const redCenter = new Complex(2, 0);
+    const greenCenter = redCenter.mul(rotateTurns(1 / 3));
+    const blueCenter = redCenter.mul(rotateTurns(2 / 3));
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(redCenter, Complex.ZERO, 50));
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(greenCenter, Complex.ZERO, 50));
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(blueCenter, Complex.ZERO, 50));
+    //styleCurrentLines("fat");
+    await sleep(500);
+    const ratio = 1.2;
+    await runTimer(
+      5000,
+      new MakeCircle(blueCenter.mul(ratio), Complex.ZERO, 50)
+    );
+    await sleep(500);
+    await runTimer(
+      5000,
+      new MakeCircle(greenCenter.mul(ratio), Complex.ZERO, 50)
+    );
+    await sleep(500);
+    await runTimer(
+      5000,
+      new MakeCircle(redCenter.mul(ratio), Complex.ZERO, 50)
+    );
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeMultiple2", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(originalPolynomialFormula);
+    await sleep(500);
+    const points = [
+      new Complex(0, 0),
+      new Complex(0, 4),
+      new Complex(-3, 4),
+      new Complex(-3, -4),
+      new Complex(0, -4),
+    ];
+    const segments = points.map((from, index) => {
+      const to = points[(index + 1) % points.length];
+      const length = to.sub(from).abs();
+      return { from, to, length };
+    });
+    const parameter = sum(segments.map((segment) => segment.length));
+    const totalMs = 10000;
+    const stepsPerUnit = 5;
+    for (const { to, from, length } of segments) {
+      const steps = Math.round(length * stepsPerUnit);
+      await runTimer(
+        (totalMs * length) / parameter,
+        new MakeSegment(from, to, steps)
+      );
+    }
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeMultiple3", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(originalPolynomialFormula);
+    const center = new Complex(1.5);
+    const offset = 0.08;
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(center.add(offset), Complex.ZERO, 50));
+    await sleep(500);
+    await runTimer(5000, new MakeCircle(center.sub(offset), Complex.ZERO, 50));
+    await sleep(500);
+    await runTimer(
+      5000,
+      new MakeCircle(
+        center.sub(offset / 2).mul(rotateTurns(1 / 3)),
+        Complex.ZERO,
+        50
+      )
+    );
+    DisableUserInterface.restore();
+  }
+);
+
 /**
  * This is a collection of things that I'm exporting for debug purposes.
  * This is subject to constant change.
@@ -1222,17 +1316,8 @@ getById("showMeLog2", HTMLButtonElement).addEventListener("click", async () => {
   DisableUserInterface,
 };
 
-// TODO add more demo buttons.
-// For the log, make a perfect circle or three around the origin.
-// Then move to a bigger radius.
-// Then perfect circles in the opposite direction.
-// And move really close to the branch point.
-
 // TODO Add a button to save the SVG image.
 
 // TODO The numbers still jump around too much.
 // Maybe instead of writing "4" I should write "4&nbsp;&nbsp;&nbsp;&nbsp;",
 // to line up with "3.999"
-
-// TODO scrollbars don't work great on the phone.
-// I'm not sure what to do about that.
