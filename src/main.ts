@@ -826,6 +826,10 @@ class MakeCircle implements Action {
    */
   #stepsSaved = 0;
 
+  readonly #direction: -1 | 1;
+
+  readonly #stepsRequested: number;
+
   /**
    *
    * @param center The center of the circle.
@@ -834,13 +838,14 @@ class MakeCircle implements Action {
    * @param steps The number of times to save the current point to the path.
    * These steps will be evenly spread around the circle.
    * This will include the final point, but not the starting point.
+   *
+   * A positive number will rotate counterclockwise, i.e. the mathematically positive direction.
+   * A negative number will rotate clockwise.
    */
-  constructor(
-    private readonly center: Complex,
-    start: Complex,
-    private readonly steps: number
-  ) {
+  constructor(private readonly center: Complex, start: Complex, steps: number) {
     this.#initialOffset = start.sub(center);
+    this.#direction = steps > 0 ? 1 : -1;
+    this.#stepsRequested = steps / this.#direction;
   }
 
   /**
@@ -853,7 +858,9 @@ class MakeCircle implements Action {
       // But I print the number differently if it is an exact integer.
       progress = 0;
     }
-    return this.#initialOffset.mul(rotateTurns(progress)).add(this.center);
+    return this.#initialOffset
+      .mul(rotateTurns(progress * this.#direction))
+      .add(this.center);
   }
 
   /**
@@ -862,10 +869,10 @@ class MakeCircle implements Action {
    * This animation only makes sense of the progress never goes backwards.
    */
   public updateNow(progress: Progress) {
-    const shouldBeSaved = (this.steps * progress) | 0;
+    const shouldBeSaved = (this.#stepsRequested * progress) | 0;
     while (this.#stepsSaved < shouldBeSaved) {
       this.#stepsSaved++;
-      updateZ(this.getPosition(this.#stepsSaved / this.steps));
+      updateZ(this.getPosition(this.#stepsSaved / this.#stepsRequested));
       saveAll();
     }
     updateZ(this.getPosition(progress));
@@ -1167,6 +1174,38 @@ getById("showMeRightTriangle", HTMLButtonElement).addEventListener(
     DisableUserInterface.restore();
   }
 );
+
+getById("showMeLog1", HTMLButtonElement).addEventListener("click", async () => {
+  DisableUserInterface.now();
+  showCutCheckBox.checked = false;
+  selectFormula(naturalLogFormula);
+  await runTimer(250, new MakeSegment(zPath.lastSaved, new Complex(2), 1));
+  await runTimer(2000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 50));
+  await runTimer(250, new MakeSegment(zPath.lastSaved, new Complex(4), 1));
+  await runTimer(4000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 100));
+  await runTimer(250, new MakeSegment(zPath.lastSaved, new Complex(6), 1));
+  await runTimer(6000, new MakeCircle(Complex.ZERO, zPath.lastSaved, -150));
+  DisableUserInterface.restore();
+});
+
+getById("showMeLog2", HTMLButtonElement).addEventListener("click", async () => {
+  DisableUserInterface.now();
+  showCutCheckBox.checked = false;
+  selectFormula(naturalLogFormula);
+  /**
+   * As progress goes from 0 to 1,
+   * the outputs should go from 1 to -8.
+   */
+  const desiredOutput = makeLinear(0, 1, 1, -8);
+  const action: Action = {
+    updateNow(progress: Progress) {
+      const z = Math.exp(desiredOutput(progress));
+      updateZ(new Complex(z));
+    },
+  };
+  await runTimer(5000, action);
+  DisableUserInterface.restore();
+});
 
 /**
  * This is a collection of things that I'm exporting for debug purposes.
