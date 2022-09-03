@@ -2,7 +2,6 @@ import "./style.css";
 import { Complex } from "complex.js";
 import { getById } from "phil-lib/client-misc";
 import {
-  count,
   initializedArray,
   makeLinear,
   makePromise,
@@ -756,6 +755,28 @@ function selectFormula(toSelect: number | Formula | string) {
 }
 
 /**
+ *
+ * @param radians How far to rotate.  0 means not at all.  Math.PI/2 means 90° counterclockwise.
+ * @returns If you multiply the return value by a complex number, that number will rotate by the specified amount.
+ */
+function rotate(radians: number) {
+  return new Complex({ r: 1, phi: radians });
+}
+
+/**
+ *
+ * @param turns How far to rotate.  0 means not at all.  0.25 means 90° counterclockwise.
+ * @returns If you multiply the return value by a complex number, that number will rotate by the specified amount.
+ */
+function rotateTurns(turns: number) {
+  return rotate(turns * (Math.PI * 2));
+}
+
+function rotateDegrees(degrees: number) {
+  return rotate(degrees * (Math.PI / 180));
+}
+
+/**
  * Currently this is just for testing and development.
  * You can only select this from the console.
  */
@@ -765,7 +786,7 @@ const sixthRootFormula: Formula = {
     const power = 6;
     const primary = z.pow(1 / power);
     const newWs = initializedArray(power, (i) =>
-      primary.mul({ r: 1, phi: ((Math.PI * 2) / power) * i })
+      primary.mul(rotateTurns(i / power))
     );
     return reorderToMatchPast(newWs, previousWs);
   },
@@ -776,36 +797,6 @@ const sixthRootFormula: Formula = {
   initialZ: new Complex(6),
   showSimpleCut: true,
 };
-
-/**
- * Create a list of points that approximate a circle.
- * @param center The center of the circle.
- * @param start Where to start drawing.  Typically the currently selected point.
- * @param steps The number of points to draw.
- * A negative number means to move clockwise.
- * A positive number means to move counterclockwise, i.e. the "mathematically positive direction."
- * No point is counted twice.
- *
- * This should be a non-zero integer.
- * @returns A list of points.
- * The last point will be the same as the `start` point.
- * The first point will be one step away from the `start` point.
- * @deprecated See the `MakeCircle` class.
- * That class can do smooth animations.
- * This function always spits out a fixed number of points.
- */
-function makeCircle(center: Complex, start: Complex, steps: number) {
-  const initialOffset = start.sub(center);
-  const stepRotation = new Complex({ r: 1, phi: (2 * Math.PI) / steps });
-  const result = initializedArray(Math.abs(steps) - 1, (step) => {
-    return stepRotation
-      .pow(step + 1)
-      .mul(initialOffset)
-      .add(center);
-  });
-  result.push(start);
-  return result;
-}
 
 /**
  * A number between 0 and 1.
@@ -862,9 +853,7 @@ class MakeCircle implements Action {
       // But I print the number differently if it is an exact integer.
       progress = 0;
     }
-    return this.#initialOffset
-      .mul({ r: 1, phi: progress * 2 * Math.PI })
-      .add(this.center);
+    return this.#initialOffset.mul(rotateTurns(progress)).add(this.center);
   }
 
   /**
@@ -916,25 +905,6 @@ function runTimer(ms: number, action: Action) {
   }
   requestAnimationFrame(animationCallback);
   return promise.promise;
-}
-
-/**
- * Create a list of points along a line segment.
- * @param from Where to start drawing.
- * The first point in the result will be one step past this.
- * The assumption is that you're starting from the currently saved point.
- * @param to Where to end.  The last point in the list will be exactly this.
- * @param steps How many points do you want?  Should be an integer greater than 0.
- * @returns A list of evenly spaced points between `from` and `to`, including `to` as the last value.
- * @deprecated See the `MakeSegment` class.
- * That class can do smooth animations.
- * This function always spits out a fixed number of points.
- */
-function makeSegment(from: Complex, to: Complex, steps: number) {
-  const totalDistance = to.sub(from);
-  return initializedArray(steps, (step) =>
-    to.sub(totalDistance.mul((steps - step - 1) / steps))
-  );
 }
 
 class MakeSegment implements Action {
@@ -1012,88 +982,6 @@ function styleCurrentLines(newStyle: "thin" | "fat") {
     styleCurrentLines(style);
   });
 });
-
-/**
- * Run some automated demos.  Move the input and output according to a script.
- *
- * This was a first draft.
- * It was aimed at me as a programmer.
- * See `getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener("click"` and similar for the final version.
- */
-async function demo() {
-  showCutCheckBox.checked = false;
-  selectFormula(squareRootFormula);
-  await sleep(100);
-  const steps = 30;
-  for (const z of makeCircle(Complex.ZERO, zPath.lastSaved, steps)) {
-    updateZ(z);
-    await sleep(3000 / steps);
-    saveAll();
-  }
-  styleCurrentLines("fat");
-  await sleep(500);
-  for (const z of makeCircle(Complex.ZERO, zPath.lastSaved, steps)) {
-    updateZ(z);
-    saveAll();
-    await sleep(3000 / steps);
-  }
-  await sleep(2000);
-  selectFormula(squareRootFormula);
-  async function square(
-    savesPerSegment: number,
-    pointsPerSave: number = Math.floor(50 / savesPerSegment),
-    totalMs = 3000
-  ) {
-    const pointsPerSegment = savesPerSegment * pointsPerSave;
-    let source = zPath.lastSaved;
-    for (let i = 0; i < 4; i++) {
-      const destination = rotate90(source);
-      for (const [next, index] of zip(
-        makeSegment(source, destination, pointsPerSegment),
-        count()
-      )) {
-        updateZ(next);
-        await sleep(totalMs / pointsPerSegment);
-        if ((index + 1) % pointsPerSave == 0) {
-          saveAll();
-        }
-      }
-      // assert all saved?  Force a save now?
-      source = destination;
-    }
-  }
-  await square(1);
-  styleCurrentLines("thin");
-  await sleep(500);
-  await square(2);
-  styleCurrentLines("fat");
-  await sleep(500);
-  await square(30);
-  await sleep(500);
-
-  // What happens if you don't save your previous points?
-  // This is a simpler and more traditional way of answering these questions.
-  // We cut the plane and say that everything is nice as long as you never cross that cut.
-  showCutCheckBox.checked = true;
-  selectFormula(squareRootFormula);
-  for (const current of makeSegment(zPath.lastSaved, new Complex(-4, 1), 50)) {
-    updateZ(current);
-    await sleep(3000 / 50);
-  }
-  const startTime = performance.now();
-  let done = false;
-  function wiggle(time: number) {
-    if (!done) {
-      const timePast = time - startTime;
-      const phase = (timePast / 3000) * 2 * Math.PI;
-      const newPosition = new Complex({ re: -4, im: Math.cos(phase) });
-      updateZ(newPosition);
-      requestAnimationFrame(wiggle);
-    }
-  }
-  requestAnimationFrame(wiggle);
-  //await segment();
-}
 
 getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
   "click",
@@ -1222,6 +1110,64 @@ getById("showMeSquare3", HTMLButtonElement).addEventListener(
   }
 );
 
+getById("showMeEquilateralTriangle", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    const first = new Complex(6.5);
+    const second = first.mul(rotateTurns(1 / 3));
+    const third = first.mul(rotateTurns(2 / 3));
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    await runTimer(250, new MakeSegment(zPath.currentValue, first, 1));
+    await runTimer(2000, new MakeSegment(first, second, 50));
+    await runTimer(2000, new MakeSegment(second, third, 50));
+    await runTimer(2000, new MakeSegment(third, first, 50));
+    DisableUserInterface.restore();
+  }
+);
+
+getById("showMeRightTriangle", HTMLButtonElement).addEventListener(
+  "click",
+  async () => {
+    /**
+     * The segment opposite the 30° angle.
+     */
+    const shortLength = 6;
+    /**
+     * The segment opposite the 60° angle.
+     */
+    const longLength = shortLength * Math.sqrt(3);
+    /**
+     * The segment opposite the 90° angle.
+     */
+    const hypotenuseLength = 2 * shortLength;
+    DisableUserInterface.now();
+    showCutCheckBox.checked = false;
+    selectFormula(squareRootFormula);
+    const vertex90 = zPath.lastSaved;
+    const vertex30 = vertex90.add(rotateDegrees(90 + 45 + 20).mul(longLength));
+    const vertex60 = vertex90.add(
+      rotateDegrees(180 + 45 + 20).mul(shortLength)
+    );
+    const totalTime = 6000;
+    const parameter = sum([shortLength, longLength, hypotenuseLength]);
+    await runTimer(
+      (totalTime * longLength) / parameter,
+      new MakeSegment(vertex90, vertex30, 50)
+    );
+    await runTimer(
+      (totalTime * hypotenuseLength) / parameter,
+      new MakeSegment(vertex30, vertex60, 50)
+    );
+    await runTimer(
+      (totalTime * shortLength) / parameter,
+      new MakeSegment(vertex60, vertex90, 50)
+    );
+    DisableUserInterface.restore();
+  }
+);
+
 /**
  * This is a collection of things that I'm exporting for debug purposes.
  * This is subject to constant change.
@@ -1234,12 +1180,10 @@ getById("showMeSquare3", HTMLButtonElement).addEventListener(
   },
   selectFormula,
   sixthRootFormula,
-  demo,
   DisableUserInterface,
 };
 
 // TODO add more demo buttons.
-// Repeat the conformal angle step with other shapes, like a triangle.
 // For the log, make a perfect circle or three around the origin.
 // Then move to a bigger radius.
 // Then perfect circles in the opposite direction.
@@ -1250,3 +1194,6 @@ getById("showMeSquare3", HTMLButtonElement).addEventListener(
 // TODO The numbers still jump around too much.
 // Maybe instead of writing "4" I should write "4&nbsp;&nbsp;&nbsp;&nbsp;",
 // to line up with "3.999"
+
+// TODO scrollbars don't work great on the phone.
+// I'm not sure what to do about that.
