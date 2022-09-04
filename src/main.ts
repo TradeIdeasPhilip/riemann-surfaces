@@ -997,7 +997,6 @@ getById("showMeCirclesAndRoots", HTMLButtonElement).addEventListener(
     styleCurrentLines("fat");
     await sleep(500);
     await runTimer(5000, new MakeCircle(Complex.ZERO, zPath.lastSaved, 20));
-    // TODO show next steps
     DisableUserInterface.restore();
   }
 );

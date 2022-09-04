@@ -162,6 +162,14 @@ There were no drawings, no colors, just a page full of numbers.
 
 I was initially upset because I couldn’t get my answers to match the professor’s handout. My professor wasn’t the slightest bit concerned. It turns out he made a mistake in his version. No one had ever noticed until I created my interactive demo!
 
+## In Layman's Terms
+
+_Complex analysis_ is calculus with imaginary numbers.
+It is mostly focused on _analytic_ functions, i.e. things that are smooth to the nth degree.
+Some functions, like square root, would be perfectly analytic except for the one pesky little problem that they have more than one answer.
+A _Riemann surface_ (pictured above) is a way to solve that problem, and make the square root perfectly smooth.
+My program is a way to visualize Riemann surfaces in action.
+
 ## Keywords
 
 - Riemann surface
