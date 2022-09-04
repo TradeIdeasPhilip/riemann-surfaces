@@ -26,7 +26,7 @@ Currently there is no preview or drag option unless you use a mouse.)
 
 Use the dropdown list to pick a function to graph.
 
-The "Demo" section is a work in progress!
+The "Demo" section will show you some examples of interesting things you can do.
 
 ### Square Root
 

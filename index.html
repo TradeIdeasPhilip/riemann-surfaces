@@ -8,7 +8,45 @@
   </head>
   <body>
     <div id="mainPanel">
-      <svg viewBox="-7.5 -7.5 15 15">
+      <svg viewBox="-7.5 -7.5 15 15" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          [style*="--base-color:"] {
+            stroke: var(--base-color);
+            fill: var(--base-color);
+            fill-opacity: 0.25;
+            stroke-width: 0.05;
+          }
+          line {
+            stroke-width: 0.05;
+            stroke-linecap: round;
+          }
+          line.fat {
+            stroke-width: 0.15;
+            opacity: 33%;
+            transition-property: stroke-width, opacity;
+            transition-duration: 500ms;
+            transition-timing-function: cubic-bezier(0, 0, 0.61, 1.81);
+          }
+          line.thin {
+            stroke-width: 0.025;
+            opacity: 67%;
+            transition-property: stroke-width, opacity;
+            transition-duration: 500ms;
+            transition-timing-function: cubic-bezier(0, 0, 0.61, 1.81);
+          }
+          line.active {
+            stroke-dasharray: 0.1 0.15;
+            stroke-dashoffset: 0.1;
+          }
+          .branch-point {
+            fill: saddlebrown;
+          }
+          .cut-ray {
+            stroke: saddlebrown;
+            stroke-dasharray: 0.5 0.15 0.01 0.15;
+            stroke-width: 0.09;
+          }
+        </style>
         <g id="bottom"></g>
         <g id="main"></g>
         <g id="top"></g>
@@ -22,6 +60,7 @@
         <input type="checkbox" id="showCut" /><label for="showCut"
           >Show Cut</label
         >
+        <button id="saveChart" data-no-disable><u>S</u>ave chart</button>
       </div>
       <p>
         <a href="https://github.com/TradeIdeasPhilip/riemann-surfaces#readme"
@@ -50,6 +89,10 @@
         see if this if we move the input without saving any previous values.
       </p>
       <button id="showMeBranchCuts1">Show me</button>
+      <p>
+        As you saw, each of the two outputs was well behaved as long as we
+        didn't try to cross the cut.
+      </p>
       <p>
         As soon as the user saves a point, we automatically move the branch cut
         as far from that point as possible.
@@ -88,6 +131,13 @@
       </p>
       <h2>Natural Logarithm</h2>
       <p>
+        As the input approaches the branch point, the outputs all approach
+        infinity. In complex analysis we say there is only one infinity. So all
+        of the outputs would have the same value if the input was the branch
+        point.
+      </p>
+      <button id="showMeLog2">Show me</button>
+      <p>
         The natural log makes the most sense if think of the input in polar
         coordinates. The real part of the answer is based on the distance
         between the origin and the input. The imaginary part of the answer is
@@ -95,13 +145,6 @@
         origin.
       </p>
       <button id="showMeLog1">Show me</button>
-      <p>
-        As the input approaches the branch point, the outputs all approach
-        infinity. In complex analysis we say there is only one infinity. So all
-        of the outputs would have the same value if the input was the branch
-        point.
-      </p>
-      <button id="showMeLog2">Show me</button>
       <h2>Multiple Branch Points</h2>
       <p>See what happens when you go around an individual branch point.</p>
       <button id="showMeMultiple1">Show me</button>

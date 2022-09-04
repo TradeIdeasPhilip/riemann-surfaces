@@ -1,45 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap");
-[style*="--base-color:"] {
-  stroke: var(--base-color);
-  fill: var(--base-color);
-  fill-opacity: 0.25;
-  stroke-width: 0.05;
-}
-.branch-point {
-  fill: saddlebrown;
-}
-.cut-ray {
-  stroke: saddlebrown;
-  stroke-dasharray: 0.5 0.15 0.01 0.15;
-  stroke-width: 0.09;
-}
 svg {
   border-style: solid;
   border-width: 0.25em;
   border-color: saddlebrown;
   max-height: 90vh;
-}
-line {
-  stroke-width: 0.05;
-  stroke-linecap: round;
-}
-line.fat {
-  stroke-width: 0.15;
-  opacity: 33%;
-  transition-property: stroke-width, opacity;
-  transition-duration: 500ms;
-  transition-timing-function: cubic-bezier(0, 0, 0.61, 1.81);
-}
-line.thin {
-  stroke-width: 0.025;
-  opacity: 67%;
-  transition-property: stroke-width, opacity;
-  transition-duration: 500ms;
-  transition-timing-function: cubic-bezier(0, 0, 0.61, 1.81);
-}
-line.active {
-  stroke-dasharray: 0.1 0.15;
-  stroke-dashoffset: 0.1;
 }
 #positionInfo {
   display: flex;

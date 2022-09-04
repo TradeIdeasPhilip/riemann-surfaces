@@ -98,9 +98,6 @@ type Formula = {
    * A large value would suggest that there is a bug in the code.
    */
   error(w: Complex, z: Complex): number;
-  /**
-   * In calculus terminology these are "Branch points".
-   */
   readonly branchPoints: readonly Complex[];
   readonly initialZ: Complex;
   /**
@@ -310,7 +307,7 @@ function formatComplex(complex: Complex) {
  */
 class DisableUserInterface {
   static readonly #shouldDisable = Array.from(
-    document.querySelectorAll("button, select")
+    document.querySelectorAll("button:not([data-no-disable]), select")
   ) as (HTMLButtonElement | HTMLSelectElement)[];
   /**
    * Only enable the things that we previously disabled.
@@ -1301,6 +1298,38 @@ getById("showMeMultiple3", HTMLButtonElement).addEventListener(
   }
 );
 
+function download(filename: string, text: string) {
+  // Source:  https://stackoverflow.com/a/18197511/971955
+  // TODO move this to to phil-lib
+  var pom = document.createElement("a");
+  pom.setAttribute(
+    "href",
+    "data:text/plain;charset=utf-8," + encodeURIComponent(text)
+  );
+  pom.setAttribute("download", filename);
+
+  if (document.createEvent) {
+    var event = document.createEvent("MouseEvents");
+    event.initEvent("click", true, true);
+    pom.dispatchEvent(event);
+  } else {
+    pom.click();
+  }
+}
+
+const saveChartButton = getById("saveChart", HTMLButtonElement);
+
+saveChartButton.addEventListener("click", () => {
+  const text = svg.outerHTML;
+  download("chart.svg", text);
+});
+
+addEventListener("keydown", (event) => {
+  if (event.code == "KeyS") {
+    saveChartButton.click();
+  }
+});
+
 /**
  * This is a collection of things that I'm exporting for debug purposes.
  * This is subject to constant change.
@@ -1316,8 +1345,12 @@ getById("showMeMultiple3", HTMLButtonElement).addEventListener(
   DisableUserInterface,
 };
 
-// TODO Add a button to save the SVG image.
-
 // TODO The numbers still jump around too much.
 // Maybe instead of writing "4" I should write "4&nbsp;&nbsp;&nbsp;&nbsp;",
 // to line up with "3.999"
+
+// TODO get rid of most of the transparency.
+// It makes sense for the circles that mark the moving end of the path.
+// In other places that was just the easiest way for me to make the color lighter, and more distinct from the original.
+// It works okay, now, for the most part.
+// But if there are a lot of partially transparent segments, the GUI slows down A LOT.
