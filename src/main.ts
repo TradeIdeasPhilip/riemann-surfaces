@@ -1,41 +1,15 @@
 import "./style.css";
 import { Complex } from "complex.js";
-import { getById } from "phil-lib/client-misc";
+import { download, getById } from "phil-lib/client-misc";
 import {
   initializedArray,
   makeLinear,
   makePromise,
+  permutations,
   sleep,
   sum,
   zip,
 } from "phil-lib/misc";
-
-// TODO shouldn't this move to phil-lib/client-misc.ts.
-/**
- *
- * @param toPermute The items that need to find a location.  Initially all items are here.
- * @param prefix The items that are already in the correct place.  Initially this is empty.  New items will be added to the end of this list.
- * @returns Something you can iterate over to get all permutations of the original array.
- */
-function* permutations<T>(
-  toPermute: readonly T[],
-  prefix: readonly T[] = []
-): Generator<readonly T[], void, undefined> {
-  if (toPermute.length == 0) {
-    yield prefix;
-  } else {
-    for (let index = 0; index < toPermute.length; index++) {
-      const nextItem = toPermute[index];
-      const newPrefix = [...prefix, nextItem];
-      const stillNeedToPermute = [
-        ...toPermute.slice(0, index),
-        ...toPermute.slice(index + 1),
-      ];
-      yield* permutations(stillNeedToPermute, newPrefix);
-    }
-  }
-}
-//console.log(Array.from(permutations(["A", "B", "C"])), Array.from(permutations([1 , 2, 3, 4])), Array.from(permutations([])));
 
 /**
  * This will attempt to reorder the `current` array to be as similar as possible to the `past` array.
@@ -1296,25 +1270,6 @@ getById("showMeMultiple3", HTMLButtonElement).addEventListener(
     DisableUserInterface.restore();
   }
 );
-
-function download(filename: string, text: string) {
-  // Source:  https://stackoverflow.com/a/18197511/971955
-  // TODO move this to to phil-lib
-  var pom = document.createElement("a");
-  pom.setAttribute(
-    "href",
-    "data:text/plain;charset=utf-8," + encodeURIComponent(text)
-  );
-  pom.setAttribute("download", filename);
-
-  if (document.createEvent) {
-    var event = document.createEvent("MouseEvents");
-    event.initEvent("click", true, true);
-    pom.dispatchEvent(event);
-  } else {
-    pom.click();
-  }
-}
 
 const saveChartButton = getById("saveChart", HTMLButtonElement);
 
