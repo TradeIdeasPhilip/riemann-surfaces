@@ -157,8 +157,9 @@ That code doesn’t want to run any more, so I redid it in JavaScript (TypeScrip
 
 This saved my butt back in grad school. I was having trouble in complex analysis class. The rest of the students were all math majors, and had a fulltime job. But I took one of my professor’s handouts and turned it into an interactive demo and I got a lot of extra credit.
 
-I wish I had saved that handout.
+I still have that handout.
 There were no drawings, no colors, just a page full of numbers.
+![The professor's original handout](./Riemann300.jpg)
 
 I was initially upset because I couldn’t get my answers to match the professor’s handout. My professor wasn’t the slightest bit concerned. It turns out he made a mistake in his version. No one had ever noticed until I created my interactive demo!
 
