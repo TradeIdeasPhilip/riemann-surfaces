@@ -155,7 +155,7 @@ I recreated something I did in school.
 https://www.trade-ideas.com/home/phil/loops/
 That code doesn’t want to run any more, so I redid it in JavaScript (TypeScript).
 
-This saved my butt back in grad school. I was having trouble in complex analysis class. The rest of the students were all math majors, and had a fulltime job. But I took one of my professor’s handouts and turned it into an interactive demo and I got a lot of extra credit.
+This saved my butt back in grad school. I was having trouble in complex analysis class. The rest of the students were all math majors, and I had a fulltime job. But I took one of my professor’s handouts and turned it into an interactive demo and I got a lot of extra credit.
 
 I still have that handout.
 There were no drawings, no colors, just a page full of numbers.
